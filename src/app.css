@@ -81,13 +81,17 @@ summary { cursor: pointer; font-weight: bold; }
 .slot.over { background: #d9e9ff; }
 .slot.break, .slot.blocked { background: repeating-linear-gradient(135deg, #f3f4f6, #f3f4f6 6px, #e9ebef 6px, #e9ebef 12px); color: var(--muted); font-size: 13px; }
 .slot .empty { color: #b0b7c3; font-size: 13px; flex: 1; }
-.slot { position: relative; }
-.slot .mini { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; gap: 2px; padding: 2px; background: var(--card); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.25); z-index: 2; }
-.slot .mini .btn { padding: 1px 5px; font-size: 12px; white-space: nowrap; }
+.slot { flex-wrap: wrap; }
+.slot .t { border: none; background: none; padding: 0; cursor: pointer; text-align: left; font-family: inherit; }
+.slot .t .caret { font-size: 9px; margin-left: 1px; color: #b0b7c3; }
+.slot .t:hover, .slot .t.open { color: var(--accent); }
+.slot .t:hover .caret, .slot .t.open .caret { color: var(--accent); }
+.slot .mini { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0 2px 46px; }
+.slot .mini .btn { padding: 1px 6px; font-size: 12px; white-space: nowrap; }
 .day-add { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--line); background: var(--bg); }
 .badge.out { background: var(--warn); }
 .badge.moved { background: #2b6cb0; }
-.slot:hover .mini, .slot:focus-within .mini { display: inline-flex; }
+
 .card { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; background: var(--card); cursor: grab; font-size: 14px; user-select: none; flex: 1; min-width: 0; }
 .tray .card { flex: none; }
 .card .no { color: var(--muted); font-size: 12px; }
@@ -96,6 +100,15 @@ summary { cursor: pointer; font-weight: bold; }
 .card.ng { background: var(--bad-bg); border-color: var(--bad); }
 .badge { font-size: 11px; border-radius: 4px; padding: 0 4px; color: #fff; flex: none; }
 .badge.sib { background: var(--sib); }
+.badge.sibask { background: var(--warn); }
+.card { flex-wrap: wrap; }
+.card.sib { background: #f3edfc; border-color: var(--sib); border-left: 5px solid var(--sib); }
+.card.sibask { border-left: 5px solid var(--warn); }
+.card .sibline { flex-basis: 100%; font-size: 11px; color: var(--sib); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.card.sel.sib, .card.ng.sib { border-left-width: 5px; }
+.box.sibbox { background: #f6f2fd; border: 1px solid #d9c9f3; }
+.box.sibbox summary { color: var(--sib); }
+.box.sibbox ul { margin-top: 6px; font-size: 14px; }
 .badge.ng { background: var(--bad); }
 .badge.memo { background: var(--muted); }
 .marks td, .marks th { border: 1px solid var(--line); padding: 4px 10px; font-size: 14px; }
@@ -158,7 +171,7 @@ summary { cursor: pointer; font-weight: bold; }
 }
 @media print {
   body { background: #fff; font-size: 11pt; }
-  .top, .step > h2 .num, .hint, .tray, .actions, .day-add, .badge.moved, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
+  .top, .step > h2 .num, .hint, .tray, .actions, .day-add, .badge.moved, #sibList, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
   .step { border: none; padding: 0; }
   .board { grid-template-columns: repeat(3, 1fr); }
   .card { border: none; padding: 0; }

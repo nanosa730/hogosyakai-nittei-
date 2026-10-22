@@ -603,7 +603,8 @@
   function rowTools(sl, ...extra) {
     const btn = (label, title, fn) => h('button', { class: 'btn small', title, onclick: (e) => { e.stopPropagation(); fn(); } }, label);
     const len = slotLen(sl);
-    return h('span', { class: 'mini' },
+    if (T.toolsFor !== sl) return null;
+    return h('div', { class: 'mini' },
       ...extra.map(([label, fn]) => btn(label, '', fn)),
       btn('上に枠', `この上に面談枠を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'free')),
       btn('上に休憩', `この上に休憩を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'break')),
@@ -615,19 +616,37 @@
     const ng = slot && isNg(sid, slot);
     const out = slot && !ng && isOutside(slot);
     const moved = slot && timeChanged(sid, slot);
-    const sib = T.data.sibInfo.get(sid);
+    const info = T.data.sibInfo.get(sid) || '';
+    const sibOk = info && !info.startsWith('要確認');
+    const sibAsk = info.includes('要確認');
+    const sib = info;
     const c = h('div', {
-      class: 'card' + (T.selected === sid ? ' sel' : '') + (ng ? ' ng' : ''),
+      class: 'card' + (T.selected === sid ? ' sel' : '') + (ng ? ' ng' : '') + (sibOk ? ' sib' : sibAsk ? ' sibask' : ''),
       draggable: 'true',
       title: [Core.label(s), sib ? `兄弟姉妹：${sib}` : '', ng ? 'この時間は×（都合が悪い）です' : ''].filter(Boolean).join('\n'),
-      onclick: (e) => { e.stopPropagation(); if (T.selected && T.selected !== sid && slot) { moveTo(slot); return; } T.selected = T.selected === sid ? null : sid; renderBoard(); },
+      onclick: (e) => {
+        e.stopPropagation();
+        if (T.selected && T.selected !== sid && slot) { moveTo(slot); return; }
+        T.selected = T.selected === sid ? null : sid;
+        if (T.selected && sibOk) toast(`兄弟姉妹がいます：${info.split('／要確認')[0]}。動かすときは相手の時間に気をつけてください`, 6000);
+        renderBoard();
+      },
       ondragstart: (e) => { T.selected = sid; e.dataTransfer.setData('text/plain', sid); e.dataTransfer.effectAllowed = 'move'; },
     }, h('span', { class: 'no' }, `${s.no}`), h('span', { class: 'nm' }, s.name),
-    sib ? h('span', { class: 'badge sib' }, '兄弟') : null,
+    sibOk ? h('span', { class: 'badge sib' }, '兄弟') : sibAsk ? h('span', { class: 'badge sibask' }, '兄弟？') : null,
     ng ? h('span', { class: 'badge ng' }, '×') : null,
     out ? h('span', { class: 'badge out' }, '時間外') : null,
-    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null);
+    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null,
+    sibOk && slot ? h('span', { class: 'sibline' }, `↔ ${shortSib(info)}`) : null);
     return c;
+  }
+
+  // 「2年B組3番 生徒2203（11/13 13:30～13:40）」→「2年B組3番 11/13 13:30」
+  function shortSib(info) {
+    return info.split('／').filter((x) => !x.startsWith('要確認')).map((x) => {
+      const m = x.match(/^(\S+番)\s.*[（(]([^）)]+?)(?:[～~][^）)]*)?[）)]$/);
+      return m ? `${m[1]} ${m[2]}` : x;
+    }).join('、');
   }
 
   function dropTarget(el, onDrop) {
@@ -685,7 +704,10 @@
       for (const sl of list) {
         if (prevEnd != null && sl.start > prevEnd) col.append(h('div', { class: 'slot break' }, h('span', { class: 't' }, ''), `（${sl.start - prevEnd}分 あき）`));
         prevEnd = sl.end;
-        const t = h('span', { class: 't' }, Core.toHM(sl.start));
+        const t = h('button', {
+          class: 't' + (T.toolsFor === sl ? ' open' : ''), title: 'クリックすると、枠や休憩の追加・削除ができます',
+          onclick: (e) => { e.stopPropagation(); T.toolsFor = T.toolsFor === sl ? null : sl; renderBoard(); },
+        }, Core.toHM(sl.start), h('span', { class: 'caret' }, '▾'));
         let row;
         if (sl.kind !== 'free') {
           row = h('div', { class: 'slot ' + sl.kind }, t, sl.kind === 'break' ? '休憩' : '担任不可',
@@ -708,7 +730,22 @@
     renderWarnings();
   }
 
+  function renderSibList() {
+    const d = T.data;
+    const rows = [...d.sibInfo].filter(([, info]) => !info.startsWith('要確認')).map(([sid, info]) => {
+      const s = studentOf(sid);
+      const sl = d.slots.find((x) => x.sid === sid);
+      return { s, text: `${s.no}番 ${s.name}（${sl ? `${sl.month}/${sl.day} ${Core.toHM(sl.start)}` : '未割当'}）↔ ${info.split('／要確認')[0]}` };
+    }).sort((a, b) => a.s.no - b.s.no);
+    const box = $('sibList');
+    box.replaceChildren();
+    if (!rows.length) return;
+    box.append(h('details', { class: 'box sibbox', open: true }, h('summary', {}, `この学級の兄弟姉妹（${rows.length}人）　動かすときは相手の学級と時間がずれないよう気をつけてください`),
+      h('ul', {}, rows.map((r) => h('li', {}, r.text)))));
+  }
+
   function renderWarnings() {
+    renderSibList();
     const d = T.data;
     const bad = [];
     const warn = [];
