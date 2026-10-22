@@ -104,6 +104,40 @@ summary { cursor: pointer; font-weight: bold; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2933; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 15px; z-index: 10; max-width: 90vw; }
 .flow li { margin-bottom: 6px; }
 .print-only { display: none; }
+/* 文面の入力 */
+.letter-edit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.letter-form label { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.letter-form input, .letter-form textarea { font-size: 15px; padding: 6px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--card); font-family: inherit; }
+.letter-form textarea { resize: vertical; line-height: 1.5; }
+.preview-wrap { border: 1px solid var(--line); background: #e9ecf0; padding: 10px; overflow: hidden; border-radius: 8px; }
+.preview-wrap .letter-page { transform: scale(var(--pv, .55)); transform-origin: top left; margin-bottom: calc((var(--pv, .55) - 1) * 267mm); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.preview-cap { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+@media (max-width: 800px) { .letter-edit { grid-template-columns: 1fr; } }
+.word-opt { margin-top: 16px; }
+/* 配布物1枚（A4） */
+.letter-page { width: 174mm; height: 265mm; background: #fff; color: #000; padding: 0; overflow: hidden; position: relative;
+  font-family: "UD デジタル 教科書体 NP-R", "UD Digi Kyokasho NP-R", "UD デジタル 教科書体 NP", "BIZ UD明朝", "ＭＳ 明朝", "MS Mincho", serif; font-size: 12pt; line-height: 1.5; }
+.letter-page .r { text-align: right; }
+.letter-page .c { text-align: center; }
+.letter-page .lp-date { margin-top: 4mm; }
+.letter-page .lp-to { margin-top: 2mm; }
+.letter-page .lp-school { margin-top: 2mm; }
+.letter-page .lp-title { font-size: 16pt; margin: 8mm 0 5mm; }
+.letter-page .lp-body { white-space: pre-wrap; min-height: 38mm; }
+.letter-page .lp-ki { margin: 6mm 0 4mm; }
+.letter-page .lp-box { border: 2px solid #000; margin: 3mm 0 8mm 9mm; padding: 4mm 6mm 3mm; }
+.letter-page .lp-who { display: flex; gap: 6mm; padding-left: 4mm; }
+.letter-page .lp-time { font-size: 16pt; font-weight: bold; margin: 2mm 0 2mm 12mm; }
+.letter-page .lp-note { margin-left: 8mm; }
+.letter-page .lp-items { white-space: pre-wrap; }
+#printArea { display: none; }
+@page { size: A4 portrait; margin: 15mm 18mm; }
+@media print {
+  body.print-letters > *:not(#printArea) { display: none !important; }
+  body.print-letters #printArea { display: block; }
+  body.print-letters #printArea .letter-page { break-after: page; page-break-after: always; }
+  body.print-letters #printArea .letter-page:last-child { break-after: auto; page-break-after: auto; }
+}
 @media print {
   body { background: #fff; font-size: 11pt; }
   .top, .step > h2 .num, .hint, .tray, .actions, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
@@ -150,7 +184,7 @@ summary { cursor: pointer; font-weight: bold; }
         </label>
         <label>休憩
           <select id="optBreak">
-            <option value="0" selected>入れない</option><option value="4">4人ごとに1枠</option><option value="5">5人ごとに1枠</option><option value="6">6人ごとに1枠</option><option value="8">8人ごとに1枠</option>
+            <option value="0" selected>入れない</option><option value="2">2人ごとに1枠</option><option value="3">3人ごとに1枠</option><option value="4">4人ごとに1枠</option><option value="5">5人ごとに1枠</option><option value="6">6人ごとに1枠</option><option value="8">8人ごとに1枠</option>
           </select>
         </label>
         <label>兄弟姉妹の間
@@ -176,8 +210,14 @@ summary { cursor: pointer; font-weight: bold; }
       <details id="issuesBox"><summary id="issuesSummary">データの注意点</summary><ul id="issues"></ul></details>
     </div>
 
+    <div class="step" id="stepLetter" hidden>
+      <h2><span class="num">4</span>配布物の文面（全学級共通）</h2>
+      <p class="hint">ここで直した文面が、学級ごとの日程案に入ります。直した内容はこのパソコンに記憶され、次回も使えます。</p>
+      <div id="adminLetter"></div>
+    </div>
+
     <div class="step" id="stepRun" hidden>
-      <h2><span class="num">4</span>日程案を作る</h2>
+      <h2><span class="num">5</span>日程案を作る</h2>
       <button class="btn primary big" id="runBtn">日程案を作成する</button>
       <div id="result"></div>
     </div>
@@ -209,23 +249,31 @@ summary { cursor: pointer; font-weight: bold; }
     </div>
 
     <div class="step" id="docStep" hidden>
-      <h2><span class="num">3</span>配布物（Word）を作る</h2>
-      <p>配布物のWordで、名前や日時を入れたい場所に下の<strong>目印</strong>を書いておき、そのWordを選んでください。1人1ページで全員分が入ったWordができます。</p>
-      <table class="marks">
-        <tr><th>目印</th><th>入る内容（例）</th></tr>
-        <tr><td>【氏名】</td><td>生徒の名前</td></tr>
-        <tr><td>【学年】【組】【番号】</td><td>3 / A / 5</td></tr>
-        <tr><td>【日時】</td><td>11月10日（火）13:30～13:40</td></tr>
-        <tr><td>【月日】【曜日】【時刻】【終了時刻】</td><td>11月10日 / 火 / 13:30 / 13:40</td></tr>
-      </table>
-      <label class="drop small" id="tplDrop">
-        <input type="file" id="tplFile" accept=".docx" hidden>
-        <span class="drop-main">配布物のWordをドラッグ</span>
-        <span class="drop-sub">または クリックして選ぶ</span>
-      </label>
-      <p id="tplName" class="msg"></p>
-      <button class="btn primary big" id="docBtn" disabled>配布物を作る</button>
-      <span id="docMsg" class="msg"></span>
+      <h2><span class="num">3</span>配布物を印刷する</h2>
+      <p>日時が決まった生徒全員分を、1人1枚（A4）で印刷します。</p>
+      <details id="teacherLetterBox"><summary>文面を直す（この学級だけ）</summary><div id="teacherLetter"></div></details>
+      <div class="actions">
+        <button class="btn primary big" id="printLettersBtn">配布物を印刷する</button>
+        <span id="letterMsg" class="msg"></span>
+      </div>
+      <details class="word-opt"><summary>自分で用意したWordに差し込む（上級者向け）</summary>
+        <p>Wordで、名前や日時を入れたい場所に下の<strong>目印</strong>を書いておき、そのWordを選んでください。1人1ページで全員分が入ったWordができます。</p>
+        <table class="marks">
+          <tr><th>目印</th><th>入る内容（例）</th></tr>
+          <tr><td>【氏名】</td><td>生徒の名前</td></tr>
+          <tr><td>【学年】【組】【番号】</td><td>3 / A / 5</td></tr>
+          <tr><td>【日時】</td><td>11月10日（火）13:30～13:40</td></tr>
+          <tr><td>【月日】【曜日】【時刻】【終了時刻】</td><td>11月10日 / 火 / 13:30 / 13:40</td></tr>
+        </table>
+        <label class="drop small" id="tplDrop">
+          <input type="file" id="tplFile" accept=".docx" hidden>
+          <span class="drop-main">配布物のWordをドラッグ</span>
+          <span class="drop-sub">または クリックして選ぶ</span>
+        </label>
+        <p id="tplName" class="msg"></p>
+        <button class="btn" id="docBtn" disabled>Wordを作る</button>
+        <span id="docMsg" class="msg"></span>
+      </details>
     </div>
   </section>
 
@@ -236,7 +284,7 @@ summary { cursor: pointer; font-weight: bold; }
       <ol class="flow">
         <li><strong>担当者</strong>：全学年のFormsのExcelを入れて「日程案を作成する」→ 学級ごとのExcel（日程案_〇年〇組.xlsx）を共有フォルダに保存。</li>
         <li><strong>担任</strong>：このページの「②担任」で自分の学級の日程案を開き、必要なら順番を入れ替えて「保存する」。</li>
-        <li><strong>担任</strong>：配布物のWordを選んで「配布物を作る」→ できたWordを確認して印刷。</li>
+        <li><strong>担任</strong>：「配布物を印刷する」で、1人1枚のお知らせを印刷。</li>
       </ol>
       <h2>自動で割り振るときの決まり</h2>
       <ul>
@@ -248,6 +296,8 @@ summary { cursor: pointer; font-weight: bold; }
       </ul>
       <h2>Excelで直接直してもよい</h2>
       <p>日程案のExcelの「日程」シートで、名前と出席番号の行を入れ替えて保存しても大丈夫です。もう一度このページで開くと、×の時間に入っていないかなどをチェックします。</p>
+      <h2>配布物の文面を変えたいとき</h2>
+      <p>担当者は「①担当者」の「4 配布物の文面」で、全学級共通の文面（時候のあいさつ、持ち物など）を直せます。担任は「3 配布物を印刷する」の「文面を直す」で、自分の学級だけ直せます（日程案を保存すると一緒に保存されます）。</p>
       <h2>兄弟姉妹の時間を動かしたとき</h2>
       <p>兄弟姉妹のいる家庭を動かすと注意が出ます。相手の学級の担任に連絡してください。</p>
     </div>
@@ -255,6 +305,7 @@ summary { cursor: pointer; font-weight: bold; }
 </main>
 
 <div id="toast" class="toast" hidden></div>
+<div id="printArea"></div>
 
 <script>/*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
 var XLSX={};function make_xlsx_lib(e){e.version="0.18.5";var r=1200,t=1252;var a=[874,932,936,949,950,1250,1251,1252,1253,1254,1255,1256,1257,1258,1e4];var n={0:1252,1:65001,2:65001,77:1e4,128:932,129:949,130:1361,134:936,136:950,161:1253,162:1254,163:1258,177:1255,178:1256,186:1257,204:1251,222:874,238:1250,255:1252,69:6969};var i=function(e){if(a.indexOf(e)==-1)return;t=n[0]=e};function s(){i(1252)}var l=function(e){r=e;i(e)};function o(){l(1200);s()}function c(e){var r=[];for(var t=0,a=e.length;t<a;++t)r[t]=e.charCodeAt(t);return r}function f(e){var r=[];for(var t=0;t<e.length>>1;++t)r[t]=String.fromCharCode(e.charCodeAt(2*t)+(e.charCodeAt(2*t+1)<<8));return r.join("")}function u(e){var r=[];for(var t=0;t<e.length>>1;++t)r[t]=String.fromCharCode(e.charCodeAt(2*t+1)+(e.charCodeAt(2*t)<<8));return r.join("")}var h=function(e){var r=e.charCodeAt(0),t=e.charCodeAt(1);if(r==255&&t==254)return f(e.slice(2));if(r==254&&t==255)return u(e.slice(2));if(r==65279)return e.slice(1);return e};var p=function xc(e){return String.fromCharCode(e)};var d=function Sc(e){return String.fromCharCode(e)};var m=null;var v=true;var g="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";function b(e){var r="";var t=0,a=0,n=0,i=0,s=0,l=0,o=0;for(var c=0;c<e.length;){t=e.charCodeAt(c++);i=t>>2;a=e.charCodeAt(c++);s=(t&3)<<4|a>>4;n=e.charCodeAt(c++);l=(a&15)<<2|n>>6;o=n&63;if(isNaN(a)){l=o=64}else if(isNaN(n)){o=64}r+=g.charAt(i)+g.charAt(s)+g.charAt(l)+g.charAt(o)}return r}function w(e){var r="";var t=0,a=0,n=0,i=0,s=0,l=0,o=0;e=e.replace(/[^\w\+\/\=]/g,"");for(var c=0;c<e.length;){i=g.indexOf(e.charAt(c++));s=g.indexOf(e.charAt(c++));t=i<<2|s>>4;r+=String.fromCharCode(t);l=g.indexOf(e.charAt(c++));a=(s&15)<<4|l>>2;if(l!==64){r+=String.fromCharCode(a)}o=g.indexOf(e.charAt(c++));n=(l&3)<<6|o;if(o!==64){r+=String.fromCharCode(n)}}return r}var y=function(){return typeof Buffer!=="undefined"&&typeof undefined!=="undefined"&&typeof{}!=="undefined"&&!!{}.node}();var k=function(){if(typeof Buffer!=="undefined"){var e=!Buffer.from;if(!e)try{Buffer.from("foo","utf8")}catch(r){e=true}return e?function(e,r){return r?new Buffer(e,r):new Buffer(e)}:Buffer.from.bind(Buffer)}return function(){}}();function x(e){if(y)return Buffer.alloc?Buffer.alloc(e):new Buffer(e);return typeof Uint8Array!="undefined"?new Uint8Array(e):new Array(e)}function S(e){if(y)return Buffer.allocUnsafe?Buffer.allocUnsafe(e):new Buffer(e);return typeof Uint8Array!="undefined"?new Uint8Array(e):new Array(e)}var C=function Cc(e){if(y)return k(e,"binary");return e.split("").map(function(e){return e.charCodeAt(0)&255})};function _(e){if(typeof ArrayBuffer==="undefined")return C(e);var r=new ArrayBuffer(e.length),t=new Uint8Array(r);for(var a=0;a!=e.length;++a)t[a]=e.charCodeAt(a)&255;return r}function A(e){if(Array.isArray(e))return e.map(function(e){return String.fromCharCode(e)}).join("");var r=[];for(var t=0;t<e.length;++t)r[t]=String.fromCharCode(e[t]);return r.join("")}function T(e){if(typeof Uint8Array==="undefined")throw new Error("Unsupported");return new Uint8Array(e)}function E(e){if(typeof ArrayBuffer=="undefined")throw new Error("Unsupported");if(e instanceof ArrayBuffer)return E(new Uint8Array(e));var r=new Array(e.length);for(var t=0;t<e.length;++t)r[t]=e[t];return r}var F=y?function(e){return Buffer.concat(e.map(function(e){return Buffer.isBuffer(e)?e:k(e)}))}:function(e){if(typeof Uint8Array!=="undefined"){var r=0,t=0;for(r=0;r<e.length;++r)t+=e[r].length;var a=new Uint8Array(t);var n=0;for(r=0,t=0;r<e.length;t+=n,++r){n=e[r].length;if(e[r]instanceof Uint8Array)a.set(e[r],t);else if(typeof e[r]=="string"){throw"wtf"}else a.set(new Uint8Array(e[r]),t)}return a}return[].concat.apply([],e.map(function(e){return Array.isArray(e)?e:[].slice.call(e)}))};function D(e){var r=[],t=0,a=e.length+250;var n=x(e.length+255);for(var i=0;i<e.length;++i){var s=e.charCodeAt(i);if(s<128)n[t++]=s;else if(s<2048){n[t++]=192|s>>6&31;n[t++]=128|s&63}else if(s>=55296&&s<57344){s=(s&1023)+64;var l=e.charCodeAt(++i)&1023;n[t++]=240|s>>8&7;n[t++]=128|s>>2&63;n[t++]=128|l>>6&15|(s&3)<<4;n[t++]=128|l&63}else{n[t++]=224|s>>12&15;n[t++]=128|s>>6&63;n[t++]=128|s&63}if(t>a){r.push(n.slice(0,t));t=0;n=x(65535);a=65530}}r.push(n.slice(0,t));return F(r)}var O=/\u0000/g,M=/[\u0001-\u0006]/g;function N(e){var r="",t=e.length-1;while(t>=0)r+=e.charAt(t--);return r}function P(e,r){var t=""+e;return t.length>=r?t:br("0",r-t.length)+t}function I(e,r){var t=""+e;return t.length>=r?t:br(" ",r-t.length)+t}function R(e,r){var t=""+e;return t.length>=r?t:t+br(" ",r-t.length)}function L(e,r){var t=""+Math.round(e);return t.length>=r?t:br("0",r-t.length)+t}function B(e,r){var t=""+e;return t.length>=r?t:br("0",r-t.length)+t}var z=Math.pow(2,32);function U(e,r){if(e>z||e<-z)return L(e,r);var t=Math.round(e);return B(t,r)}function W(e,r){r=r||0;return e.length>=7+r&&(e.charCodeAt(r)|32)===103&&(e.charCodeAt(r+1)|32)===101&&(e.charCodeAt(r+2)|32)===110&&(e.charCodeAt(r+3)|32)===101&&(e.charCodeAt(r+4)|32)===114&&(e.charCodeAt(r+5)|32)===97&&(e.charCodeAt(r+6)|32)===108}var j=[["Sun","Sunday"],["Mon","Monday"],["Tue","Tuesday"],["Wed","Wednesday"],["Thu","Thursday"],["Fri","Friday"],["Sat","Saturday"]];var H=[["J","Jan","January"],["F","Feb","February"],["M","Mar","March"],["A","Apr","April"],["M","May","May"],["J","Jun","June"],["J","Jul","July"],["A","Aug","August"],["S","Sep","September"],["O","Oct","October"],["N","Nov","November"],["D","Dec","December"]];function V(e){if(!e)e={};e[0]="General";e[1]="0";e[2]="0.00";e[3]="#,##0";e[4]="#,##0.00";e[9]="0%";e[10]="0.00%";e[11]="0.00E+00";e[12]="# ?/?";e[13]="# ??/??";e[14]="m/d/yy";e[15]="d-mmm-yy";e[16]="d-mmm";e[17]="mmm-yy";e[18]="h:mm AM/PM";e[19]="h:mm:ss AM/PM";e[20]="h:mm";e[21]="h:mm:ss";e[22]="m/d/yy h:mm";e[37]="#,##0 ;(#,##0)";e[38]="#,##0 ;[Red](#,##0)";e[39]="#,##0.00;(#,##0.00)";e[40]="#,##0.00;[Red](#,##0.00)";e[45]="mm:ss";e[46]="[h]:mm:ss";e[47]="mmss.0";e[48]="##0.0E+0";e[49]="@";e[56]='"上午/下午 "hh"時"mm"分"ss"秒 "';return e}var X={0:"General",1:"0",2:"0.00",3:"#,##0",4:"#,##0.00",9:"0%",10:"0.00%",11:"0.00E+00",12:"# ?/?",13:"# ??/??",14:"m/d/yy",15:"d-mmm-yy",16:"d-mmm",17:"mmm-yy",18:"h:mm AM/PM",19:"h:mm:ss AM/PM",20:"h:mm",21:"h:mm:ss",22:"m/d/yy h:mm",37:"#,##0 ;(#,##0)",38:"#,##0 ;[Red](#,##0)",39:"#,##0.00;(#,##0.00)",40:"#,##0.00;[Red](#,##0.00)",45:"mm:ss",46:"[h]:mm:ss",47:"mmss.0",48:"##0.0E+0",49:"@",56:'"上午/下午 "hh"時"mm"分"ss"秒 "'};var G={5:37,6:38,7:39,8:40,23:0,24:0,25:0,26:0,27:14,28:14,29:14,30:14,31:14,50:14,51:14,52:14,53:14,54:14,55:14,56:14,57:14,58:14,59:1,60:2,61:3,62:4,67:9,68:10,69:12,70:13,71:14,72:14,73:15,74:16,75:17,76:20,77:21,78:22,79:45,80:46,81:47,82:0};var Y={5:'"$"#,##0_);\\("$"#,##0\\)',63:'"$"#,##0_);\\("$"#,##0\\)',6:'"$"#,##0_);[Red]\\("$"#,##0\\)',64:'"$"#,##0_);[Red]\\("$"#,##0\\)',7:'"$"#,##0.00_);\\("$"#,##0.00\\)',65:'"$"#,##0.00_);\\("$"#,##0.00\\)',8:'"$"#,##0.00_);[Red]\\("$"#,##0.00\\)',66:'"$"#,##0.00_);[Red]\\("$"#,##0.00\\)',41:'_(* #,##0_);_(* \\(#,##0\\);_(* "-"_);_(@_)',42:'_("$"* #,##0_);_("$"* \\(#,##0\\);_("$"* "-"_);_(@_)',43:'_(* #,##0.00_);_(* \\(#,##0.00\\);_(* "-"??_);_(@_)',44:'_("$"* #,##0.00_);_("$"* \\(#,##0.00\\);_("$"* "-"??_);_(@_)'};function J(e,r,t){var a=e<0?-1:1;var n=e*a;var i=0,s=1,l=0;var o=1,c=0,f=0;var u=Math.floor(n);while(c<r){u=Math.floor(n);l=u*s+i;f=u*c+o;if(n-u<5e-8)break;n=1/(n-u);i=s;s=l;o=c;c=f}if(f>r){if(c>r){f=o;l=i}else{f=c;l=s}}if(!t)return[0,a*l,f];var h=Math.floor(a*l/f);return[h,a*l-h*f,f]}function K(e,r,t){if(e>2958465||e<0)return null;var a=e|0,n=Math.floor(86400*(e-a)),i=0;var s=[];var l={D:a,T:n,u:86400*(e-a)-n,y:0,m:0,d:0,H:0,M:0,S:0,q:0};if(Math.abs(l.u)<1e-6)l.u=0;if(r&&r.date1904)a+=1462;if(l.u>.9999){l.u=0;if(++n==86400){l.T=n=0;++a;++l.D}}if(a===60){s=t?[1317,10,29]:[1900,2,29];i=3}else if(a===0){s=t?[1317,8,29]:[1900,1,0];i=6}else{if(a>60)--a;var o=new Date(1900,0,1);o.setDate(o.getDate()+a-1);s=[o.getFullYear(),o.getMonth()+1,o.getDate()];i=o.getDay();if(a<60)i=(i+6)%7;if(t)i=le(o,s)}l.y=s[0];l.m=s[1];l.d=s[2];l.S=n%60;n=Math.floor(n/60);l.M=n%60;n=Math.floor(n/60);l.H=n;l.q=i;return l}var q=new Date(1899,11,31,0,0,0);var Z=q.getTime();var Q=new Date(1900,2,1,0,0,0);function ee(e,r){var t=e.getTime();if(r)t-=1461*24*60*60*1e3;else if(e>=Q)t+=24*60*60*1e3;return(t-(Z+(e.getTimezoneOffset()-q.getTimezoneOffset())*6e4))/(24*60*60*1e3)}function re(e){return e.indexOf(".")==-1?e:e.replace(/(?:\.0*|(\.\d*[1-9])0+)$/,"$1")}function te(e){if(e.indexOf("E")==-1)return e;return e.replace(/(?:\.0*|(\.\d*[1-9])0+)[Ee]/,"$1E").replace(/(E[+-])(\d)$/,"$10$2")}function ae(e){var r=e<0?12:11;var t=re(e.toFixed(12));if(t.length<=r)return t;t=e.toPrecision(10);if(t.length<=r)return t;return e.toExponential(5)}function ne(e){var r=re(e.toFixed(11));return r.length>(e<0?12:11)||r==="0"||r==="-0"?e.toPrecision(6):r}function ie(e){var r=Math.floor(Math.log(Math.abs(e))*Math.LOG10E),t;if(r>=-4&&r<=-1)t=e.toPrecision(10+r);else if(Math.abs(r)<=9)t=ae(e);else if(r===10)t=e.toFixed(10).substr(0,12);else t=ne(e);return re(te(t.toUpperCase()))}function se(e,r){switch(typeof e){case"string":return e;case"boolean":return e?"TRUE":"FALSE";case"number":return(e|0)===e?e.toString(10):ie(e);case"undefined":return"";case"object":if(e==null)return"";if(e instanceof Date)return Be(14,ee(e,r&&r.date1904),r);}throw new Error("unsupported value in General format: "+e)}function le(e,r){r[0]-=581;var t=e.getDay();if(e<60)t=(t+6)%7;return t}function oe(e,r,t,a){var n="",i=0,s=0,l=t.y,o,c=0;switch(e){case 98:l=t.y+543;case 121:switch(r.length){case 1:;case 2:o=l%100;c=2;break;default:o=l%1e4;c=4;break;}break;case 109:switch(r.length){case 1:;case 2:o=t.m;c=r.length;break;case 3:return H[t.m-1][1];case 5:return H[t.m-1][0];default:return H[t.m-1][2];}break;case 100:switch(r.length){case 1:;case 2:o=t.d;c=r.length;break;case 3:return j[t.q][0];default:return j[t.q][1];}break;case 104:switch(r.length){case 1:;case 2:o=1+(t.H+11)%12;c=r.length;break;default:throw"bad hour format: "+r;}break;case 72:switch(r.length){case 1:;case 2:o=t.H;c=r.length;break;default:throw"bad hour format: "+r;}break;case 77:switch(r.length){case 1:;case 2:o=t.M;c=r.length;break;default:throw"bad minute format: "+r;}break;case 115:if(r!="s"&&r!="ss"&&r!=".0"&&r!=".00"&&r!=".000")throw"bad second format: "+r;if(t.u===0&&(r=="s"||r=="ss"))return P(t.S,r.length);if(a>=2)s=a===3?1e3:100;else s=a===1?10:1;i=Math.round(s*(t.S+t.u));if(i>=60*s)i=0;if(r==="s")return i===0?"0":""+i/s;n=P(i,2+a);if(r==="ss")return n.substr(0,2);return"."+n.substr(2,r.length-1);case 90:switch(r){case"[h]":;case"[hh]":o=t.D*24+t.H;break;case"[m]":;case"[mm]":o=(t.D*24+t.H)*60+t.M;break;case"[s]":;case"[ss]":o=((t.D*24+t.H)*60+t.M)*60+Math.round(t.S+t.u);break;default:throw"bad abstime format: "+r;}c=r.length===3?1:2;break;case 101:o=l;c=1;break;}var f=c>0?P(o,c):"";return f}function ce(e){var r=3;if(e.length<=r)return e;var t=e.length%r,a=e.substr(0,t);for(;t!=e.length;t+=r)a+=(a.length>0?",":"")+e.substr(t,r);return a}var fe=/%/g;function ue(e,r,t){var a=r.replace(fe,""),n=r.length-a.length;return De(e,a,t*Math.pow(10,2*n))+br("%",n)}function he(e,r,t){var a=r.length-1;while(r.charCodeAt(a-1)===44)--a;return De(e,r.substr(0,a),t/Math.pow(10,3*(r.length-a)))}function pe(e,r){var t;var a=e.indexOf("E")-e.indexOf(".")-1;if(e.match(/^#+0.0E\+0$/)){if(r==0)return"0.0E+0";else if(r<0)return"-"+pe(e,-r);var n=e.indexOf(".");if(n===-1)n=e.indexOf("E");var i=Math.floor(Math.log(r)*Math.LOG10E)%n;if(i<0)i+=n;t=(r/Math.pow(10,i)).toPrecision(a+1+(n+i)%n);if(t.indexOf("e")===-1){var s=Math.floor(Math.log(r)*Math.LOG10E);if(t.indexOf(".")===-1)t=t.charAt(0)+"."+t.substr(1)+"E+"+(s-t.length+i);else t+="E+"+(s-i);while(t.substr(0,2)==="0."){t=t.charAt(0)+t.substr(2,n)+"."+t.substr(2+n);t=t.replace(/^0+([1-9])/,"$1").replace(/^0+\./,"0.")}t=t.replace(/\+-/,"-")}t=t.replace(/^([+-]?)(\d*)\.(\d*)[Ee]/,function(e,r,t,a){return r+t+a.substr(0,(n+i)%n)+"."+a.substr(i)+"E"})}else t=r.toExponential(a);if(e.match(/E\+00$/)&&t.match(/e[+-]\d$/))t=t.substr(0,t.length-1)+"0"+t.charAt(t.length-1);if(e.match(/E\-/)&&t.match(/e\+/))t=t.replace(/e\+/,"e");return t.replace("e","E")}var de=/# (\?+)( ?)\/( ?)(\d+)/;function me(e,r,t){var a=parseInt(e[4],10),n=Math.round(r*a),i=Math.floor(n/a);var s=n-i*a,l=a;return t+(i===0?"":""+i)+" "+(s===0?br(" ",e[1].length+1+e[4].length):I(s,e[1].length)+e[2]+"/"+e[3]+P(l,e[4].length))}function ve(e,r,t){return t+(r===0?"":""+r)+br(" ",e[1].length+2+e[4].length)}var ge=/^#*0*\.([0#]+)/;var be=/\).*[0#]/;var we=/\(###\) ###\\?-####/;function ye(e){var r="",t;for(var a=0;a!=e.length;++a)switch(t=e.charCodeAt(a)){case 35:break;case 63:r+=" ";break;case 48:r+="0";break;default:r+=String.fromCharCode(t);}return r}function ke(e,r){var t=Math.pow(10,r);return""+Math.round(e*t)/t}function xe(e,r){var t=e-Math.floor(e),a=Math.pow(10,r);if(r<(""+Math.round(t*a)).length)return 0;return Math.round(t*a)}function Se(e,r){if(r<(""+Math.round((e-Math.floor(e))*Math.pow(10,r))).length){return 1}return 0}function Ce(e){if(e<2147483647&&e>-2147483648)return""+(e>=0?e|0:e-1|0);return""+Math.floor(e)}function _e(e,r,t){if(e.charCodeAt(0)===40&&!r.match(be)){var a=r.replace(/\( */,"").replace(/ \)/,"").replace(/\)/,"");if(t>=0)return _e("n",a,t);return"("+_e("n",a,-t)+")"}if(r.charCodeAt(r.length-1)===44)return he(e,r,t);if(r.indexOf("%")!==-1)return ue(e,r,t);if(r.indexOf("E")!==-1)return pe(r,t);if(r.charCodeAt(0)===36)return"$"+_e(e,r.substr(r.charAt(1)==" "?2:1),t);var n;var i,s,l,o=Math.abs(t),c=t<0?"-":"";if(r.match(/^00+$/))return c+U(o,r.length);if(r.match(/^[#?]+$/)){n=U(t,0);if(n==="0")n="";return n.length>r.length?n:ye(r.substr(0,r.length-n.length))+n}if(i=r.match(de))return me(i,o,c);if(r.match(/^#+0+$/))return c+U(o,r.length-r.indexOf("0"));if(i=r.match(ge)){n=ke(t,i[1].length).replace(/^([^\.]+)$/,"$1."+ye(i[1])).replace(/\.$/,"."+ye(i[1])).replace(/\.(\d*)$/,function(e,r){return"."+r+br("0",ye(i[1]).length-r.length)});return r.indexOf("0.")!==-1?n:n.replace(/^0\./,".")}r=r.replace(/^#+([0.])/,"$1");if(i=r.match(/^(0*)\.(#*)$/)){return c+ke(o,i[2].length).replace(/\.(\d*[1-9])0*$/,".$1").replace(/^(-?\d*)$/,"$1.").replace(/^0\./,i[1].length?"0.":".")}if(i=r.match(/^#{1,3},##0(\.?)$/))return c+ce(U(o,0));if(i=r.match(/^#,##0\.([#0]*0)$/)){return t<0?"-"+_e(e,r,-t):ce(""+(Math.floor(t)+Se(t,i[1].length)))+"."+P(xe(t,i[1].length),i[1].length)}if(i=r.match(/^#,#*,#0/))return _e(e,r.replace(/^#,#*,/,""),t);if(i=r.match(/^([0#]+)(\\?-([0#]+))+$/)){n=N(_e(e,r.replace(/[\\-]/g,""),t));s=0;return N(N(r.replace(/\\/g,"")).replace(/[0#]/g,function(e){return s<n.length?n.charAt(s++):e==="0"?"0":""}))}if(r.match(we)){n=_e(e,"##########",t);return"("+n.substr(0,3)+") "+n.substr(3,3)+"-"+n.substr(6)}var f="";if(i=r.match(/^([#0?]+)( ?)\/( ?)([#0?]+)/)){s=Math.min(i[4].length,7);l=J(o,Math.pow(10,s)-1,false);n=""+c;f=De("n",i[1],l[1]);if(f.charAt(f.length-1)==" ")f=f.substr(0,f.length-1)+"0";n+=f+i[2]+"/"+i[3];f=R(l[2],s);if(f.length<i[4].length)f=ye(i[4].substr(i[4].length-f.length))+f;n+=f;return n}if(i=r.match(/^# ([#0?]+)( ?)\/( ?)([#0?]+)/)){s=Math.min(Math.max(i[1].length,i[4].length),7);l=J(o,Math.pow(10,s)-1,true);return c+(l[0]||(l[1]?"":"0"))+" "+(l[1]?I(l[1],s)+i[2]+"/"+i[3]+R(l[2],s):br(" ",2*s+1+i[2].length+i[3].length))}if(i=r.match(/^[#0?]+$/)){n=U(t,0);if(r.length<=n.length)return n;return ye(r.substr(0,r.length-n.length))+n}if(i=r.match(/^([#0?]+)\.([#0]+)$/)){n=""+t.toFixed(Math.min(i[2].length,10)).replace(/([^0])0+$/,"$1");s=n.indexOf(".");var u=r.indexOf(".")-s,h=r.length-n.length-u;return ye(r.substr(0,u)+n+r.substr(r.length-h))}if(i=r.match(/^00,000\.([#0]*0)$/)){s=xe(t,i[1].length);return t<0?"-"+_e(e,r,-t):ce(Ce(t)).replace(/^\d,\d{3}$/,"0$&").replace(/^\d*$/,function(e){return"00,"+(e.length<3?P(0,3-e.length):"")+e})+"."+P(s,i[1].length)}switch(r){case"###,##0.00":return _e(e,"#,##0.00",t);case"###,###":;case"##,###":;case"#,###":var p=ce(U(o,0));return p!=="0"?c+p:"";case"###,###.00":return _e(e,"###,##0.00",t).replace(/^0\./,".");case"#,###.00":return _e(e,"#,##0.00",t).replace(/^0\./,".");default:;}throw new Error("unsupported format |"+r+"|")}function Ae(e,r,t){var a=r.length-1;while(r.charCodeAt(a-1)===44)--a;return De(e,r.substr(0,a),t/Math.pow(10,3*(r.length-a)))}function Te(e,r,t){var a=r.replace(fe,""),n=r.length-a.length;return De(e,a,t*Math.pow(10,2*n))+br("%",n)}function Ee(e,r){var t;var a=e.indexOf("E")-e.indexOf(".")-1;if(e.match(/^#+0.0E\+0$/)){if(r==0)return"0.0E+0";else if(r<0)return"-"+Ee(e,-r);var n=e.indexOf(".");if(n===-1)n=e.indexOf("E");var i=Math.floor(Math.log(r)*Math.LOG10E)%n;if(i<0)i+=n;t=(r/Math.pow(10,i)).toPrecision(a+1+(n+i)%n);if(!t.match(/[Ee]/)){var s=Math.floor(Math.log(r)*Math.LOG10E);if(t.indexOf(".")===-1)t=t.charAt(0)+"."+t.substr(1)+"E+"+(s-t.length+i);else t+="E+"+(s-i);t=t.replace(/\+-/,"-")}t=t.replace(/^([+-]?)(\d*)\.(\d*)[Ee]/,function(e,r,t,a){return r+t+a.substr(0,(n+i)%n)+"."+a.substr(i)+"E"})}else t=r.toExponential(a);if(e.match(/E\+00$/)&&t.match(/e[+-]\d$/))t=t.substr(0,t.length-1)+"0"+t.charAt(t.length-1);if(e.match(/E\-/)&&t.match(/e\+/))t=t.replace(/e\+/,"e");return t.replace("e","E")}function Fe(e,r,t){if(e.charCodeAt(0)===40&&!r.match(be)){var a=r.replace(/\( */,"").replace(/ \)/,"").replace(/\)/,"");if(t>=0)return Fe("n",a,t);return"("+Fe("n",a,-t)+")"}if(r.charCodeAt(r.length-1)===44)return Ae(e,r,t);if(r.indexOf("%")!==-1)return Te(e,r,t);if(r.indexOf("E")!==-1)return Ee(r,t);if(r.charCodeAt(0)===36)return"$"+Fe(e,r.substr(r.charAt(1)==" "?2:1),t);var n;var i,s,l,o=Math.abs(t),c=t<0?"-":"";if(r.match(/^00+$/))return c+P(o,r.length);if(r.match(/^[#?]+$/)){n=""+t;if(t===0)n="";return n.length>r.length?n:ye(r.substr(0,r.length-n.length))+n}if(i=r.match(de))return ve(i,o,c);if(r.match(/^#+0+$/))return c+P(o,r.length-r.indexOf("0"));if(i=r.match(ge)){n=(""+t).replace(/^([^\.]+)$/,"$1."+ye(i[1])).replace(/\.$/,"."+ye(i[1]));n=n.replace(/\.(\d*)$/,function(e,r){return"."+r+br("0",ye(i[1]).length-r.length)});return r.indexOf("0.")!==-1?n:n.replace(/^0\./,".")}r=r.replace(/^#+([0.])/,"$1");if(i=r.match(/^(0*)\.(#*)$/)){return c+(""+o).replace(/\.(\d*[1-9])0*$/,".$1").replace(/^(-?\d*)$/,"$1.").replace(/^0\./,i[1].length?"0.":".")}if(i=r.match(/^#{1,3},##0(\.?)$/))return c+ce(""+o);if(i=r.match(/^#,##0\.([#0]*0)$/)){return t<0?"-"+Fe(e,r,-t):ce(""+t)+"."+br("0",i[1].length)}if(i=r.match(/^#,#*,#0/))return Fe(e,r.replace(/^#,#*,/,""),t);if(i=r.match(/^([0#]+)(\\?-([0#]+))+$/)){n=N(Fe(e,r.replace(/[\\-]/g,""),t));s=0;return N(N(r.replace(/\\/g,"")).replace(/[0#]/g,function(e){return s<n.length?n.charAt(s++):e==="0"?"0":""}))}if(r.match(we)){n=Fe(e,"##########",t);return"("+n.substr(0,3)+") "+n.substr(3,3)+"-"+n.substr(6)}var f="";if(i=r.match(/^([#0?]+)( ?)\/( ?)([#0?]+)/)){s=Math.min(i[4].length,7);l=J(o,Math.pow(10,s)-1,false);n=""+c;f=De("n",i[1],l[1]);if(f.charAt(f.length-1)==" ")f=f.substr(0,f.length-1)+"0";n+=f+i[2]+"/"+i[3];f=R(l[2],s);if(f.length<i[4].length)f=ye(i[4].substr(i[4].length-f.length))+f;n+=f;return n}if(i=r.match(/^# ([#0?]+)( ?)\/( ?)([#0?]+)/)){s=Math.min(Math.max(i[1].length,i[4].length),7);l=J(o,Math.pow(10,s)-1,true);return c+(l[0]||(l[1]?"":"0"))+" "+(l[1]?I(l[1],s)+i[2]+"/"+i[3]+R(l[2],s):br(" ",2*s+1+i[2].length+i[3].length))}if(i=r.match(/^[#0?]+$/)){n=""+t;if(r.length<=n.length)return n;return ye(r.substr(0,r.length-n.length))+n}if(i=r.match(/^([#0]+)\.([#0]+)$/)){n=""+t.toFixed(Math.min(i[2].length,10)).replace(/([^0])0+$/,"$1");s=n.indexOf(".");var u=r.indexOf(".")-s,h=r.length-n.length-u;return ye(r.substr(0,u)+n+r.substr(r.length-h))}if(i=r.match(/^00,000\.([#0]*0)$/)){return t<0?"-"+Fe(e,r,-t):ce(""+t).replace(/^\d,\d{3}$/,"0$&").replace(/^\d*$/,function(e){return"00,"+(e.length<3?P(0,3-e.length):"")+e})+"."+P(0,i[1].length)}switch(r){case"###,###":;case"##,###":;case"#,###":var p=ce(""+o);return p!=="0"?c+p:"";default:if(r.match(/\.[0#?]*$/))return Fe(e,r.slice(0,r.lastIndexOf(".")),t)+ye(r.slice(r.lastIndexOf(".")));}throw new Error("unsupported format |"+r+"|")}function De(e,r,t){return(t|0)===t?Fe(e,r,t):_e(e,r,t)}function Oe(e){var r=[];var t=false;for(var a=0,n=0;a<e.length;++a)switch(e.charCodeAt(a)){case 34:t=!t;break;case 95:;case 42:;case 92:++a;break;case 59:r[r.length]=e.substr(n,a-n);n=a+1;}r[r.length]=e.substr(n);if(t===true)throw new Error("Format |"+e+"| unterminated string ");return r}var Me=/\[[HhMmSs\u0E0A\u0E19\u0E17]*\]/;function Ne(e){var r=0,t="",a="";while(r<e.length){switch(t=e.charAt(r)){case"G":if(W(e,r))r+=6;r++;break;case'"':for(;e.charCodeAt(++r)!==34&&r<e.length;){}++r;break;case"\\":r+=2;break;case"_":r+=2;break;case"@":++r;break;case"B":;case"b":if(e.charAt(r+1)==="1"||e.charAt(r+1)==="2")return true;case"M":;case"D":;case"Y":;case"H":;case"S":;case"E":;case"m":;case"d":;case"y":;case"h":;case"s":;case"e":;case"g":return true;case"A":;case"a":;case"上":if(e.substr(r,3).toUpperCase()==="A/P")return true;if(e.substr(r,5).toUpperCase()==="AM/PM")return true;if(e.substr(r,5).toUpperCase()==="上午/下午")return true;++r;break;case"[":a=t;while(e.charAt(r++)!=="]"&&r<e.length)a+=e.charAt(r);if(a.match(Me))return true;break;case".":;case"0":;case"#":while(r<e.length&&("0#?.,E+-%".indexOf(t=e.charAt(++r))>-1||t=="\\"&&e.charAt(r+1)=="-"&&"0#".indexOf(e.charAt(r+2))>-1)){}break;case"?":while(e.charAt(++r)===t){}break;case"*":++r;if(e.charAt(r)==" "||e.charAt(r)=="*")++r;break;case"(":;case")":++r;break;case"1":;case"2":;case"3":;case"4":;case"5":;case"6":;case"7":;case"8":;case"9":while(r<e.length&&"0123456789".indexOf(e.charAt(++r))>-1){}break;case" ":++r;break;default:++r;break;}}return false}function Pe(e,r,t,a){var n=[],i="",s=0,l="",o="t",c,f,u;var h="H";while(s<e.length){switch(l=e.charAt(s)){case"G":if(!W(e,s))throw new Error("unrecognized character "+l+" in "+e);n[n.length]={t:"G",v:"General"};s+=7;break;case'"':for(i="";(u=e.charCodeAt(++s))!==34&&s<e.length;)i+=String.fromCharCode(u);n[n.length]={t:"t",v:i};++s;break;case"\\":var p=e.charAt(++s),d=p==="("||p===")"?p:"t";n[n.length]={t:d,v:p};++s;break;case"_":n[n.length]={t:"t",v:" "};s+=2;break;case"@":n[n.length]={t:"T",v:r};++s;break;case"B":;case"b":if(e.charAt(s+1)==="1"||e.charAt(s+1)==="2"){if(c==null){c=K(r,t,e.charAt(s+1)==="2");if(c==null)return""}n[n.length]={t:"X",v:e.substr(s,2)};o=l;s+=2;break};case"M":;case"D":;case"Y":;case"H":;case"S":;case"E":l=l.toLowerCase();case"m":;case"d":;case"y":;case"h":;case"s":;case"e":;case"g":if(r<0)return"";if(c==null){c=K(r,t);if(c==null)return""}i=l;while(++s<e.length&&e.charAt(s).toLowerCase()===l)i+=l;if(l==="m"&&o.toLowerCase()==="h")l="M";if(l==="h")l=h;n[n.length]={t:l,v:i};o=l;break;case"A":;case"a":;case"上":var m={t:l,v:l};if(c==null)c=K(r,t);if(e.substr(s,3).toUpperCase()==="A/P"){if(c!=null)m.v=c.H>=12?"P":"A";m.t="T";h="h";s+=3}else if(e.substr(s,5).toUpperCase()==="AM/PM"){if(c!=null)m.v=c.H>=12?"PM":"AM";m.t="T";s+=5;h="h"}else if(e.substr(s,5).toUpperCase()==="上午/下午"){if(c!=null)m.v=c.H>=12?"下午":"上午";m.t="T";s+=5;h="h"}else{m.t="t";++s}if(c==null&&m.t==="T")return"";n[n.length]=m;o=l;break;case"[":i=l;while(e.charAt(s++)!=="]"&&s<e.length)i+=e.charAt(s);if(i.slice(-1)!=="]")throw'unterminated "[" block: |'+i+"|";if(i.match(Me)){if(c==null){c=K(r,t);if(c==null)return""}n[n.length]={t:"Z",v:i.toLowerCase()};o=i.charAt(1)}else if(i.indexOf("$")>-1){i=(i.match(/\$([^-\[\]]*)/)||[])[1]||"$";if(!Ne(e))n[n.length]={t:"t",v:i}}break;case".":if(c!=null){i=l;while(++s<e.length&&(l=e.charAt(s))==="0")i+=l;n[n.length]={t:"s",v:i};break};case"0":;case"#":i=l;while(++s<e.length&&"0#?.,E+-%".indexOf(l=e.charAt(s))>-1)i+=l;n[n.length]={t:"n",v:i};break;case"?":i=l;while(e.charAt(++s)===l)i+=l;n[n.length]={t:l,v:i};o=l;break;case"*":++s;if(e.charAt(s)==" "||e.charAt(s)=="*")++s;break;case"(":;case")":n[n.length]={t:a===1?"t":l,v:l};++s;break;case"1":;case"2":;case"3":;case"4":;case"5":;case"6":;case"7":;case"8":;case"9":i=l;while(s<e.length&&"0123456789".indexOf(e.charAt(++s))>-1)i+=e.charAt(s);n[n.length]={t:"D",v:i};break;case" ":n[n.length]={t:l,v:l};++s;break;case"$":n[n.length]={t:"t",v:"$"};++s;break;default:if(",$-+/():!^&'~{}<>=€acfijklopqrtuvwxzP".indexOf(l)===-1)throw new Error("unrecognized character "+l+" in "+e);n[n.length]={t:"t",v:l};++s;break;}}var v=0,g=0,b;for(s=n.length-1,o="t";s>=0;--s){switch(n[s].t){case"h":;case"H":n[s].t=h;o="h";if(v<1)v=1;break;case"s":if(b=n[s].v.match(/\.0+$/))g=Math.max(g,b[0].length-1);if(v<3)v=3;case"d":;case"y":;case"M":;case"e":o=n[s].t;break;case"m":if(o==="s"){n[s].t="M";if(v<2)v=2}break;case"X":break;case"Z":if(v<1&&n[s].v.match(/[Hh]/))v=1;if(v<2&&n[s].v.match(/[Mm]/))v=2;if(v<3&&n[s].v.match(/[Ss]/))v=3;}}switch(v){case 0:break;case 1:if(c.u>=.5){c.u=0;++c.S}if(c.S>=60){c.S=0;++c.M}if(c.M>=60){c.M=0;++c.H}break;case 2:if(c.u>=.5){c.u=0;++c.S}if(c.S>=60){c.S=0;++c.M}break;}var w="",y;for(s=0;s<n.length;++s){switch(n[s].t){case"t":;case"T":;case" ":;case"D":break;case"X":n[s].v="";n[s].t=";";break;case"d":;case"m":;case"y":;case"h":;case"H":;case"M":;case"s":;case"e":;case"b":;case"Z":n[s].v=oe(n[s].t.charCodeAt(0),n[s].v,c,g);n[s].t="t";break;case"n":;case"?":y=s+1;while(n[y]!=null&&((l=n[y].t)==="?"||l==="D"||(l===" "||l==="t")&&n[y+1]!=null&&(n[y+1].t==="?"||n[y+1].t==="t"&&n[y+1].v==="/")||n[s].t==="("&&(l===" "||l==="n"||l===")")||l==="t"&&(n[y].v==="/"||n[y].v===" "&&n[y+1]!=null&&n[y+1].t=="?"))){n[s].v+=n[y].v;n[y]={v:"",t:";"};++y}w+=n[s].v;s=y-1;break;case"G":n[s].t="t";n[s].v=se(r,t);break;}}var k="",x,S;if(w.length>0){if(w.charCodeAt(0)==40){x=r<0&&w.charCodeAt(0)===45?-r:r;S=De("n",w,x)}else{x=r<0&&a>1?-r:r;S=De("n",w,x);if(x<0&&n[0]&&n[0].t=="t"){S=S.substr(1);n[0].v="-"+n[0].v}}y=S.length-1;var C=n.length;for(s=0;s<n.length;++s)if(n[s]!=null&&n[s].t!="t"&&n[s].v.indexOf(".")>-1){C=s;break}var _=n.length;if(C===n.length&&S.indexOf("E")===-1){for(s=n.length-1;s>=0;--s){if(n[s]==null||"n?".indexOf(n[s].t)===-1)continue;if(y>=n[s].v.length-1){y-=n[s].v.length;n[s].v=S.substr(y+1,n[s].v.length)}else if(y<0)n[s].v="";else{n[s].v=S.substr(0,y+1);y=-1}n[s].t="t";_=s}if(y>=0&&_<n.length)n[_].v=S.substr(0,y+1)+n[_].v}else if(C!==n.length&&S.indexOf("E")===-1){y=S.indexOf(".")-1;for(s=C;s>=0;--s){if(n[s]==null||"n?".indexOf(n[s].t)===-1)continue;f=n[s].v.indexOf(".")>-1&&s===C?n[s].v.indexOf(".")-1:n[s].v.length-1;k=n[s].v.substr(f+1);for(;f>=0;--f){if(y>=0&&(n[s].v.charAt(f)==="0"||n[s].v.charAt(f)==="#"))k=S.charAt(y--)+k}n[s].v=k;n[s].t="t";_=s}if(y>=0&&_<n.length)n[_].v=S.substr(0,y+1)+n[_].v;y=S.indexOf(".")+1;for(s=C;s<n.length;++s){if(n[s]==null||"n?(".indexOf(n[s].t)===-1&&s!==C)continue;f=n[s].v.indexOf(".")>-1&&s===C?n[s].v.indexOf(".")+1:0;k=n[s].v.substr(0,f);for(;f<n[s].v.length;++f){if(y<S.length)k+=S.charAt(y++)}n[s].v=k;n[s].t="t";_=s}}}for(s=0;s<n.length;++s)if(n[s]!=null&&"n?".indexOf(n[s].t)>-1){x=a>1&&r<0&&s>0&&n[s-1].v==="-"?-r:r;n[s].v=De(n[s].t,n[s].v,x);n[s].t="t"}var A="";for(s=0;s!==n.length;++s)if(n[s]!=null)A+=n[s].v;return A}var Ie=/\[(=|>[=]?|<[>=]?)(-?\d+(?:\.\d*)?)\]/;function Re(e,r){if(r==null)return false;var t=parseFloat(r[2]);switch(r[1]){case"=":if(e==t)return true;break;case">":if(e>t)return true;break;case"<":if(e<t)return true;break;case"<>":if(e!=t)return true;break;case">=":if(e>=t)return true;break;case"<=":if(e<=t)return true;break;}return false}function Le(e,r){var t=Oe(e);var a=t.length,n=t[a-1].indexOf("@");if(a<4&&n>-1)--a;if(t.length>4)throw new Error("cannot find right format for |"+t.join("|")+"|");if(typeof r!=="number")return[4,t.length===4||n>-1?t[t.length-1]:"@"];switch(t.length){case 1:t=n>-1?["General","General","General",t[0]]:[t[0],t[0],t[0],"@"];break;case 2:t=n>-1?[t[0],t[0],t[0],t[1]]:[t[0],t[1],t[0],"@"];break;case 3:t=n>-1?[t[0],t[1],t[0],t[2]]:[t[0],t[1],t[2],"@"];break;case 4:break;}var i=r>0?t[0]:r<0?t[1]:t[2];if(t[0].indexOf("[")===-1&&t[1].indexOf("[")===-1)return[a,i];if(t[0].match(/\[[=<>]/)!=null||t[1].match(/\[[=<>]/)!=null){var s=t[0].match(Ie);var l=t[1].match(Ie);return Re(r,s)?[a,t[0]]:Re(r,l)?[a,t[1]]:[a,t[s!=null&&l!=null?2:1]]}return[a,i]}function Be(e,r,t){if(t==null)t={};var a="";switch(typeof e){case"string":if(e=="m/d/yy"&&t.dateNF)a=t.dateNF;else a=e;break;case"number":if(e==14&&t.dateNF)a=t.dateNF;else a=(t.table!=null?t.table:X)[e];if(a==null)a=t.table&&t.table[G[e]]||X[G[e]];if(a==null)a=Y[e]||"General";break;}if(W(a,0))return se(r,t);if(r instanceof Date)r=ee(r,t.date1904);var n=Le(a,r);if(W(n[1]))return se(r,t);if(r===true)r="TRUE";else if(r===false)r="FALSE";else if(r===""||r==null)return"";return Pe(n[1],r,t,n[0])}function $e(e,r){if(typeof r!="number"){r=+r||-1;for(var t=0;t<392;++t){if(X[t]==undefined){if(r<0)r=t;continue}if(X[t]==e){r=t;break}}if(r<0)r=391}X[r]=e;return r}function ze(e){for(var r=0;r!=392;++r)if(e[r]!==undefined)$e(e[r],r)}function Ue(){X=V()}var We={format:Be,load:$e,_table:X,load_table:ze,parse_date_code:K,is_date:Ne,get_table:function _c(){return We._table=X}};var je={5:'"$"#,##0_);\\("$"#,##0\\)',6:'"$"#,##0_);[Red]\\("$"#,##0\\)',7:'"$"#,##0.00_);\\("$"#,##0.00\\)',8:'"$"#,##0.00_);[Red]\\("$"#,##0.00\\)',23:"General",24:"General",25:"General",26:"General",27:"m/d/yy",28:"m/d/yy",29:"m/d/yy",30:"m/d/yy",31:"m/d/yy",32:"h:mm:ss",33:"h:mm:ss",34:"h:mm:ss",35:"h:mm:ss",36:"m/d/yy",41:'_(* #,##0_);_(* (#,##0);_(* "-"_);_(@_)',42:'_("$"* #,##0_);_("$"* (#,##0);_("$"* "-"_);_(@_)',43:'_(* #,##0.00_);_(* (#,##0.00);_(* "-"??_);_(@_)',44:'_("$"* #,##0.00_);_("$"* (#,##0.00);_("$"* "-"??_);_(@_)',50:"m/d/yy",51:"m/d/yy",52:"m/d/yy",53:"m/d/yy",54:"m/d/yy",55:"m/d/yy",56:"m/d/yy",57:"m/d/yy",58:"m/d/yy",59:"0",60:"0.00",61:"#,##0",62:"#,##0.00",63:'"$"#,##0_);\\("$"#,##0\\)',64:'"$"#,##0_);[Red]\\("$"#,##0\\)',65:'"$"#,##0.00_);\\("$"#,##0.00\\)',66:'"$"#,##0.00_);[Red]\\("$"#,##0.00\\)',67:"0%",68:"0.00%",69:"# ?/?",70:"# ??/??",71:"m/d/yy",72:"m/d/yy",73:"d-mmm-yy",74:"d-mmm",75:"mmm-yy",76:"h:mm",77:"h:mm:ss",78:"m/d/yy h:mm",79:"mm:ss",80:"[h]:mm:ss",81:"mmss.0"};var He=/[dD]+|[mM]+|[yYeE]+|[Hh]+|[Ss]+/g;function Ve(e){var r=typeof e=="number"?X[e]:e;r=r.replace(He,"(\\d+)");return new RegExp("^"+r+"$")}function Xe(e,r,t){var a=-1,n=-1,i=-1,s=-1,l=-1,o=-1;(r.match(He)||[]).forEach(function(e,r){var c=parseInt(t[r+1],10);switch(e.toLowerCase().charAt(0)){case"y":a=c;break;case"d":i=c;break;case"h":s=c;break;case"s":o=c;break;case"m":if(s>=0)l=c;else n=c;break;}});if(o>=0&&l==-1&&n>=0){l=n;n=-1}var c=(""+(a>=0?a:(new Date).getFullYear())).slice(-4)+"-"+("00"+(n>=1?n:1)).slice(-2)+"-"+("00"+(i>=1?i:1)).slice(-2);if(c.length==7)c="0"+c;if(c.length==8)c="20"+c;var f=("00"+(s>=0?s:0)).slice(-2)+":"+("00"+(l>=0?l:0)).slice(-2)+":"+("00"+(o>=0?o:0)).slice(-2);if(s==-1&&l==-1&&o==-1)return c;if(a==-1&&n==-1&&i==-1)return f;return c+"T"+f}var Ge=function(){var e={};e.version="1.2.0";function r(){var e=0,r=new Array(256);for(var t=0;t!=256;++t){e=t;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;e=e&1?-306674912^e>>>1:e>>>1;r[t]=e}return typeof Int32Array!=="undefined"?new Int32Array(r):r}var t=r();function a(e){var r=0,t=0,a=0,n=typeof Int32Array!=="undefined"?new Int32Array(4096):new Array(4096);for(a=0;a!=256;++a)n[a]=e[a];for(a=0;a!=256;++a){t=e[a];for(r=256+a;r<4096;r+=256)t=n[r]=t>>>8^e[t&255]}var i=[];for(a=1;a!=16;++a)i[a-1]=typeof Int32Array!=="undefined"?n.subarray(a*256,a*256+256):n.slice(a*256,a*256+256);return i}var n=a(t);var i=n[0],s=n[1],l=n[2],o=n[3],c=n[4];var f=n[5],u=n[6],h=n[7],p=n[8],d=n[9];var m=n[10],v=n[11],g=n[12],b=n[13],w=n[14];function y(e,r){var a=r^-1;for(var n=0,i=e.length;n<i;)a=a>>>8^t[(a^e.charCodeAt(n++))&255];return~a}function k(e,r){var a=r^-1,n=e.length-15,y=0;for(;y<n;)a=w[e[y++]^a&255]^b[e[y++]^a>>8&255]^g[e[y++]^a>>16&255]^v[e[y++]^a>>>24]^m[e[y++]]^d[e[y++]]^p[e[y++]]^h[e[y++]]^u[e[y++]]^f[e[y++]]^c[e[y++]]^o[e[y++]]^l[e[y++]]^s[e[y++]]^i[e[y++]]^t[e[y++]];n+=15;while(y<n)a=a>>>8^t[(a^e[y++])&255];return~a}function x(e,r){var a=r^-1;for(var n=0,i=e.length,s=0,l=0;n<i;){
@@ -706,6 +757,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const ng = new Set(s.ng);
       pref.push([s.no, s.name, s.anytime ? 'いつでもよい' : '都合の悪い日時がある', ...sortedBands.map((b) => (ng.has(b.key) ? '×' : '')), s.sibText || '']);
     }
+    const sheets = { 日程: sched, 希望: pref };
+    if (meta.letter) sheets['文面'] = letterToRows(meta.letter);
     const info = [
       ['項目', '値'],
       ['学年', cls.grade],
@@ -714,7 +767,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       ['作成日時', meta.createdAt],
       ['ツール版', VERSION],
     ];
-    return { 日程: sched, 希望: pref, 情報: info };
+    sheets['情報'] = info;
+    return sheets;
   }
 
   /**
@@ -779,7 +833,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
     // 希望シートにいるのに日程にも未割当にもいない生徒
     for (const s of students.values()) if (!seen.has(s.id) && !unassigned.includes(s.id)) unassigned.push(s.id);
-    return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), problems };
+    return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), letter: rowsToLetter(sheets['文面']), problems };
   }
 
   // 表示用の文字（全角・半角はそのまま）
@@ -800,6 +854,63 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     if (v instanceof Date) return `${v.getHours()}:${pad2(v.getMinutes())}`;
     const m = norm(v).match(/(\d{1,2}):(\d{2})/);
     return m ? `${+m[1]}:${m[2]}` : '0:00';
+  }
+
+  // ---------- 配布物の文面（保護印刷シートと同じ構成） ----------
+  const LETTER_FIELDS = [
+    ['date', '発行日'],
+    ['to', '宛名'],
+    ['school', '学校名'],
+    ['principal', '校長名'],
+    ['title', '表題'],
+    ['body', '前文'],
+    ['item1', '１の見出し'],
+    ['note', '日時の下の注意書き'],
+    ['items', '２以降の項目'],
+    ['timeStyle', '時刻の書き方'],
+  ];
+  const DEFAULT_LETTER = {
+    date: '',
+    to: '保　護　者　様',
+    school: '名古屋市立汐路中学校',
+    principal: '鈴　木　暁　子',
+    title: '保護者会（個別懇談会）のお知らせ',
+    body: '　梅雨の候、皆様にはますますご健勝のこととお喜び申し上げます。平素より本校の教育活動にご理解とご協力を賜り、誠にありがとうございます。\n'
+      + '　さて、下記のとおり保護者会（個人懇談会）の日時が決定いたしましたので、ご案内申し上げます。\n'
+      + '　ご多用のところ恐縮ではございますが、ぜひご出席くださいますようお願いいたします。なお、やむを得ずご都合がつかない場合は、学級担任までお知らせください。',
+    item1: '１　懇談日時',
+    note: '※若干お時間が前後することがございます。ご了承ください。',
+    items: '２　場　所　　　各教室\n\n'
+      + '３　内　容　　　学習（進路）や生活等について\n\n'
+      + '４　その他　　　※　スリッパをご持参ください。\n'
+      + '　　　　　　　　※　正門からお入りください。\n'
+      + '　　　　　　　　※　お車での来校はご遠慮ください。\n'
+      + '　　　　　　　　※　自転車は正門の内側に駐輪してください。\n'
+      + '　　　　　　　　※　ご来校の際は、つりさげ名札を必ずお付けください。',
+    timeStyle: 'start',
+  };
+
+  // 令和の日付（全角）
+  function reiwaDate(d) {
+    return toFull(`令和${d.getFullYear() - 2018}年${d.getMonth() + 1}月${d.getDate()}日`);
+  }
+  function toFull(s) {
+    return String(s).replace(/[0-9:]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
+  }
+  function letterToRows(letter) {
+    return [['項目', '内容'], ...LETTER_FIELDS.map(([k, label]) => [label, letter[k] == null ? '' : String(letter[k])])];
+  }
+  function rowsToLetter(rows) {
+    if (!rows || rows.length < 2) return null;
+    const byLabel = new Map(rows.slice(1).map((r) => [text(r[0]), r[1] == null ? '' : String(r[1]).replace(/\r\n?/g, '\n')]));
+    const out = { ...DEFAULT_LETTER };
+    for (const [k, label] of LETTER_FIELDS) if (byLabel.has(label)) out[k] = byLabel.get(label);
+    return out;
+  }
+  // 配布物の日時（例：１１月１０日（火）　１３：３０～）
+  function letterTime(slot, style) {
+    const t = style === 'range' ? `${toHM(slot.start)}～${toHM(slot.end)}` : `${toHM(slot.start)}～`;
+    return toFull(`${slot.month}月${slot.day}日（${slot.dow}）　${t}`);
   }
 
   // 差し込み用の値
@@ -829,6 +940,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     buildSlots, schedule,
     classToSheets, sheetsToClass, timeCell,
     slotDateText, slotTimeText, mergeFields, label, cmpStudent,
+    LETTER_FIELDS, DEFAULT_LETTER, reiwaDate, toFull, letterToRows, rowsToLetter, letterTime,
   };
 });
 </script>
@@ -1015,6 +1127,84 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   const classTitle = (g, c) => `${g}年${c}組`;
   const fileNameOf = (g, c) => `日程案_${g}年${c}組.xlsx`;
 
+  // ---------- 配布物の文面 ----------
+  const LETTER_KEY = 'hogosyakai.letter';
+  function storedLetter() {
+    try {
+      const v = JSON.parse(localStorage.getItem(LETTER_KEY) || 'null');
+      if (v) return { ...Core.DEFAULT_LETTER, ...v };
+    } catch (e) { /* 記憶できない環境でも動く */ }
+    return { ...Core.DEFAULT_LETTER };
+  }
+  function storeLetter(letter) {
+    try { localStorage.setItem(LETTER_KEY, JSON.stringify(letter)); } catch (e) { /* なし */ }
+  }
+
+  // 1枚分のお知らせ
+  function letterPage(letter, p) {
+    const date = letter.date.trim() || Core.reiwaDate(new Date());
+    return h('div', { class: 'letter-page' },
+      h('div', { class: 'r lp-date' }, date),
+      h('div', { class: 'lp-to' }, letter.to),
+      h('div', { class: 'r lp-school' }, letter.school),
+      h('div', { class: 'r' }, letter.principal),
+      h('div', { class: 'c lp-title' }, letter.title),
+      h('div', { class: 'lp-body' }, letter.body),
+      h('div', { class: 'c lp-ki' }, '記'),
+      h('div', {}, letter.item1),
+      h('div', { class: 'lp-box' },
+        h('div', { class: 'lp-who' }, h('span', {}, `${p.grade}　年`), h('span', {}, `${p.cls}　組`), h('span', {}, `生徒氏名　　${p.name}`)),
+        h('div', {}, '〔懇談予定日時〕'),
+        h('div', { class: 'lp-time' }, p.time),
+        h('div', { class: 'lp-note' }, letter.note)),
+      h('div', { class: 'lp-items' }, letter.items));
+  }
+
+  /**
+   * 文面の入力欄と見本を作る
+   * @param box 入れる場所
+   * @param get 今の文面を返す関数
+   * @param onChange 文面が変わったとき（新しい文面）
+   * @param sample 見本に使う生徒 {grade, cls, name, slot}
+   */
+  function letterEditor(box, get, onChange, sample) {
+    box.replaceChildren();
+    const letter = get();
+    const pv = h('div', { class: 'preview-wrap' });
+    const redraw = () => {
+      const l = get();
+      const sm = sample();
+      pv.replaceChildren(h('div', { class: 'preview-cap' }, '見本（1人目）'),
+        letterPage(l, { grade: sm.grade, cls: sm.cls, name: sm.name, time: sm.slot ? Core.letterTime(sm.slot, l.timeStyle) : Core.toFull('11月10日（火）　13:30～') }));
+    };
+    const field = (key, label, opts = {}) => {
+      const el = opts.rows
+        ? h('textarea', { rows: opts.rows }, letter[key])
+        : h('input', { type: 'text', value: letter[key], placeholder: opts.placeholder || '' });
+      if (opts.rows) el.value = letter[key];
+      el.addEventListener('input', () => { onChange({ ...get(), [key]: el.value }); redraw(); });
+      return h('label', {}, label, el);
+    };
+    const timeSel = h('select', {},
+      h('option', { value: 'start', selected: letter.timeStyle !== 'range' }, '開始時刻だけ（例：１３：３０～）'),
+      h('option', { value: 'range', selected: letter.timeStyle === 'range' }, '開始～終了（例：１３：３０～１３：４０）'));
+    timeSel.addEventListener('change', () => { onChange({ ...get(), timeStyle: timeSel.value }); redraw(); });
+    const form = h('div', { class: 'letter-form' },
+      field('date', '発行日', { placeholder: '空欄なら印刷した日（例：令和８年１１月２日）' }),
+      field('to', '宛名'),
+      field('school', '学校名'),
+      field('principal', '校長名'),
+      field('title', '表題'),
+      field('body', '前文（時候のあいさつなど）', { rows: 7 }),
+      field('item1', '１の見出し'),
+      h('label', {}, '時刻の書き方', timeSel),
+      field('note', '日時の下の注意書き'),
+      field('items', '２以降の項目', { rows: 9 }),
+      h('button', { class: 'btn small', onclick: () => { if (confirm('最初の文面に戻しますか？')) { onChange({ ...Core.DEFAULT_LETTER }); letterEditor(box, get, onChange, sample); } } }, '最初の文面に戻す'));
+    box.append(h('div', { class: 'letter-edit' }, form, pv));
+    redraw();
+  }
+
   // ---------- タブ ----------
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
@@ -1036,6 +1226,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     manual: new Map(), // 照合できなかった問題のキー -> 相手のid（'' = つながない）
     removed: new Set(), // 解除したリンク "a|b"
     result: null,
+    letter: storedLetter(),
   };
 
   setupDrop($('adminDrop'), $('adminFiles'), async (files) => {
@@ -1086,14 +1277,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     }
     renderFileList(fileRows, errors);
     if (!students.length) {
-      ['stepSettings', 'stepCheck', 'stepRun'].forEach((id) => { $(id).hidden = true; });
+      ['stepSettings', 'stepCheck', 'stepLetter', 'stepRun'].forEach((id) => { $(id).hidden = true; });
       return;
     }
     A.parsed = { students, bandsByGrade, issues };
     A.sib = Core.matchSiblings(students);
-    ['stepSettings', 'stepCheck', 'stepRun'].forEach((id) => { $(id).hidden = false; });
+    ['stepSettings', 'stepCheck', 'stepLetter', 'stepRun'].forEach((id) => { $(id).hidden = false; });
     renderBlockedGrid();
     renderCheck();
+    if (!$('adminLetter').firstChild) {
+      letterEditor($('adminLetter'), () => A.letter, (l) => { A.letter = l; storeLetter(l); }, () => {
+        const s = A.parsed.students[0];
+        return { grade: s.grade, cls: s.cls, name: s.name, slot: null };
+      });
+    }
   }
 
   function renderFileList(fileRows, errors) {
@@ -1236,7 +1433,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function classSheets(ck) {
     const { res, opt, createdAt } = A.result;
     const cls = res.classes.get(ck);
-    return Core.classToSheets(cls, res.byId, A.parsed.bandsByGrade.get(cls.grade), siblingInfo(res), { minutes: opt.minutes, createdAt });
+    return Core.classToSheets(cls, res.byId, A.parsed.bandsByGrade.get(cls.grade), siblingInfo(res), { minutes: opt.minutes, createdAt, letter: A.letter });
   }
 
   function renderResult() {
@@ -1304,6 +1501,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     original: new Map(), // sid -> 開いたときの枠のキー
     template: null,
     dirty: false,
+    letter: null,
   };
   const slotKey = (sl) => `${sl.dateKey} ${sl.start}`;
 
@@ -1320,8 +1518,18 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     $('docStep').hidden = false;
     $('boardTitle').textContent = `${classTitle(data.grade, data.cls)}の日程（${fileName}）`;
     $('saveMsg').textContent = '';
+    $('letterMsg').textContent = '';
+    T.letter = data.letter || storedLetter();
+    letterEditor($('teacherLetter'), () => T.letter, (l) => { T.letter = l; T.dirty = true; }, () => {
+      const first = placedList()[0];
+      return first ? { grade: first.s.grade, cls: first.s.cls, name: first.s.name, slot: first.sl } : { grade: data.grade, cls: data.cls, name: '（氏名）', slot: null };
+    });
     renderBoard();
   };
+
+  function placedList() {
+    return T.data.slots.filter((x) => x.sid).map((sl) => ({ sl, s: studentOf(sl.sid) })).sort((a, b) => a.s.no - b.s.no);
+  }
 
   async function openTeacherFile(files, items) {
     const f = files[0];
@@ -1466,7 +1674,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 
   function teacherSheets() {
     const d = T.data;
-    return Core.classToSheets({ grade: d.grade, cls: d.cls, slots: d.slots, unassigned: d.unassigned }, d.students, d.bands, d.sibInfo, { minutes: d.minutes, createdAt: new Date().toLocaleString('ja-JP') });
+    return Core.classToSheets({ grade: d.grade, cls: d.cls, slots: d.slots, unassigned: d.unassigned }, d.students, d.bands, d.sibInfo, { minutes: d.minutes, createdAt: new Date().toLocaleString('ja-JP'), letter: T.letter });
   }
 
   $('saveBtn').addEventListener('click', async () => {
@@ -1487,6 +1695,23 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   });
   $('printBtn').addEventListener('click', () => { T.selected = null; renderBoard(); window.print(); });
 
+  // ---------- 配布物の印刷 ----------
+  $('printLettersBtn').addEventListener('click', () => {
+    const placed = placedList();
+    if (!placed.length) { toast('日時が決まった生徒がいません'); return; }
+    const un = T.data.unassigned.length;
+    if (un && !confirm(`未割当の生徒が${un}人います。この人たちの分は印刷されません。続けますか？`)) return;
+    const area = $('printArea');
+    area.replaceChildren(...placed.map(({ sl, s }) => letterPage(T.letter, { grade: s.grade, cls: s.cls, name: s.name, time: Core.letterTime(sl, T.letter.timeStyle) })));
+    document.body.classList.add('print-letters');
+    $('letterMsg').textContent = `${placed.length}人分（${placed.length}枚）を印刷します。`;
+    window.print();
+  });
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-letters');
+    $('printArea').replaceChildren();
+  });
+
   // ---------- 配布物 ----------
   setupDrop($('tplDrop'), $('tplFile'), async (files) => {
     const f = files[0];
@@ -1499,7 +1724,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   $('docBtn').addEventListener('click', async () => {
     const d = T.data;
     const unassigned = d.unassigned.length;
-    const placed = d.slots.filter((x) => x.sid).map((sl) => ({ sl, s: studentOf(sl.sid) })).sort((a, b) => a.s.no - b.s.no);
+    const placed = placedList();
     if (!placed.length) { toast('日時が決まった生徒がいません'); return; }
     if (unassigned && !confirm(`未割当の生徒が${unassigned}人います。この人たちの分は作られません。続けますか？`)) return;
     $('docMsg').textContent = '作成中…';

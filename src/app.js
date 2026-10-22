@@ -60,6 +60,84 @@
   const classTitle = (g, c) => `${g}年${c}組`;
   const fileNameOf = (g, c) => `日程案_${g}年${c}組.xlsx`;
 
+  // ---------- 配布物の文面 ----------
+  const LETTER_KEY = 'hogosyakai.letter';
+  function storedLetter() {
+    try {
+      const v = JSON.parse(localStorage.getItem(LETTER_KEY) || 'null');
+      if (v) return { ...Core.DEFAULT_LETTER, ...v };
+    } catch (e) { /* 記憶できない環境でも動く */ }
+    return { ...Core.DEFAULT_LETTER };
+  }
+  function storeLetter(letter) {
+    try { localStorage.setItem(LETTER_KEY, JSON.stringify(letter)); } catch (e) { /* なし */ }
+  }
+
+  // 1枚分のお知らせ
+  function letterPage(letter, p) {
+    const date = letter.date.trim() || Core.reiwaDate(new Date());
+    return h('div', { class: 'letter-page' },
+      h('div', { class: 'r lp-date' }, date),
+      h('div', { class: 'lp-to' }, letter.to),
+      h('div', { class: 'r lp-school' }, letter.school),
+      h('div', { class: 'r' }, letter.principal),
+      h('div', { class: 'c lp-title' }, letter.title),
+      h('div', { class: 'lp-body' }, letter.body),
+      h('div', { class: 'c lp-ki' }, '記'),
+      h('div', {}, letter.item1),
+      h('div', { class: 'lp-box' },
+        h('div', { class: 'lp-who' }, h('span', {}, `${p.grade}　年`), h('span', {}, `${p.cls}　組`), h('span', {}, `生徒氏名　　${p.name}`)),
+        h('div', {}, '〔懇談予定日時〕'),
+        h('div', { class: 'lp-time' }, p.time),
+        h('div', { class: 'lp-note' }, letter.note)),
+      h('div', { class: 'lp-items' }, letter.items));
+  }
+
+  /**
+   * 文面の入力欄と見本を作る
+   * @param box 入れる場所
+   * @param get 今の文面を返す関数
+   * @param onChange 文面が変わったとき（新しい文面）
+   * @param sample 見本に使う生徒 {grade, cls, name, slot}
+   */
+  function letterEditor(box, get, onChange, sample) {
+    box.replaceChildren();
+    const letter = get();
+    const pv = h('div', { class: 'preview-wrap' });
+    const redraw = () => {
+      const l = get();
+      const sm = sample();
+      pv.replaceChildren(h('div', { class: 'preview-cap' }, '見本（1人目）'),
+        letterPage(l, { grade: sm.grade, cls: sm.cls, name: sm.name, time: sm.slot ? Core.letterTime(sm.slot, l.timeStyle) : Core.toFull('11月10日（火）　13:30～') }));
+    };
+    const field = (key, label, opts = {}) => {
+      const el = opts.rows
+        ? h('textarea', { rows: opts.rows }, letter[key])
+        : h('input', { type: 'text', value: letter[key], placeholder: opts.placeholder || '' });
+      if (opts.rows) el.value = letter[key];
+      el.addEventListener('input', () => { onChange({ ...get(), [key]: el.value }); redraw(); });
+      return h('label', {}, label, el);
+    };
+    const timeSel = h('select', {},
+      h('option', { value: 'start', selected: letter.timeStyle !== 'range' }, '開始時刻だけ（例：１３：３０～）'),
+      h('option', { value: 'range', selected: letter.timeStyle === 'range' }, '開始～終了（例：１３：３０～１３：４０）'));
+    timeSel.addEventListener('change', () => { onChange({ ...get(), timeStyle: timeSel.value }); redraw(); });
+    const form = h('div', { class: 'letter-form' },
+      field('date', '発行日', { placeholder: '空欄なら印刷した日（例：令和８年１１月２日）' }),
+      field('to', '宛名'),
+      field('school', '学校名'),
+      field('principal', '校長名'),
+      field('title', '表題'),
+      field('body', '前文（時候のあいさつなど）', { rows: 7 }),
+      field('item1', '１の見出し'),
+      h('label', {}, '時刻の書き方', timeSel),
+      field('note', '日時の下の注意書き'),
+      field('items', '２以降の項目', { rows: 9 }),
+      h('button', { class: 'btn small', onclick: () => { if (confirm('最初の文面に戻しますか？')) { onChange({ ...Core.DEFAULT_LETTER }); letterEditor(box, get, onChange, sample); } } }, '最初の文面に戻す'));
+    box.append(h('div', { class: 'letter-edit' }, form, pv));
+    redraw();
+  }
+
   // ---------- タブ ----------
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
@@ -81,6 +159,7 @@
     manual: new Map(), // 照合できなかった問題のキー -> 相手のid（'' = つながない）
     removed: new Set(), // 解除したリンク "a|b"
     result: null,
+    letter: storedLetter(),
   };
 
   setupDrop($('adminDrop'), $('adminFiles'), async (files) => {
@@ -131,14 +210,20 @@
     }
     renderFileList(fileRows, errors);
     if (!students.length) {
-      ['stepSettings', 'stepCheck', 'stepRun'].forEach((id) => { $(id).hidden = true; });
+      ['stepSettings', 'stepCheck', 'stepLetter', 'stepRun'].forEach((id) => { $(id).hidden = true; });
       return;
     }
     A.parsed = { students, bandsByGrade, issues };
     A.sib = Core.matchSiblings(students);
-    ['stepSettings', 'stepCheck', 'stepRun'].forEach((id) => { $(id).hidden = false; });
+    ['stepSettings', 'stepCheck', 'stepLetter', 'stepRun'].forEach((id) => { $(id).hidden = false; });
     renderBlockedGrid();
     renderCheck();
+    if (!$('adminLetter').firstChild) {
+      letterEditor($('adminLetter'), () => A.letter, (l) => { A.letter = l; storeLetter(l); }, () => {
+        const s = A.parsed.students[0];
+        return { grade: s.grade, cls: s.cls, name: s.name, slot: null };
+      });
+    }
   }
 
   function renderFileList(fileRows, errors) {
@@ -281,7 +366,7 @@
   function classSheets(ck) {
     const { res, opt, createdAt } = A.result;
     const cls = res.classes.get(ck);
-    return Core.classToSheets(cls, res.byId, A.parsed.bandsByGrade.get(cls.grade), siblingInfo(res), { minutes: opt.minutes, createdAt });
+    return Core.classToSheets(cls, res.byId, A.parsed.bandsByGrade.get(cls.grade), siblingInfo(res), { minutes: opt.minutes, createdAt, letter: A.letter });
   }
 
   function renderResult() {
@@ -349,6 +434,7 @@
     original: new Map(), // sid -> 開いたときの枠のキー
     template: null,
     dirty: false,
+    letter: null,
   };
   const slotKey = (sl) => `${sl.dateKey} ${sl.start}`;
 
@@ -365,8 +451,18 @@
     $('docStep').hidden = false;
     $('boardTitle').textContent = `${classTitle(data.grade, data.cls)}の日程（${fileName}）`;
     $('saveMsg').textContent = '';
+    $('letterMsg').textContent = '';
+    T.letter = data.letter || storedLetter();
+    letterEditor($('teacherLetter'), () => T.letter, (l) => { T.letter = l; T.dirty = true; }, () => {
+      const first = placedList()[0];
+      return first ? { grade: first.s.grade, cls: first.s.cls, name: first.s.name, slot: first.sl } : { grade: data.grade, cls: data.cls, name: '（氏名）', slot: null };
+    });
     renderBoard();
   };
+
+  function placedList() {
+    return T.data.slots.filter((x) => x.sid).map((sl) => ({ sl, s: studentOf(sl.sid) })).sort((a, b) => a.s.no - b.s.no);
+  }
 
   async function openTeacherFile(files, items) {
     const f = files[0];
@@ -511,7 +607,7 @@
 
   function teacherSheets() {
     const d = T.data;
-    return Core.classToSheets({ grade: d.grade, cls: d.cls, slots: d.slots, unassigned: d.unassigned }, d.students, d.bands, d.sibInfo, { minutes: d.minutes, createdAt: new Date().toLocaleString('ja-JP') });
+    return Core.classToSheets({ grade: d.grade, cls: d.cls, slots: d.slots, unassigned: d.unassigned }, d.students, d.bands, d.sibInfo, { minutes: d.minutes, createdAt: new Date().toLocaleString('ja-JP'), letter: T.letter });
   }
 
   $('saveBtn').addEventListener('click', async () => {
@@ -532,6 +628,23 @@
   });
   $('printBtn').addEventListener('click', () => { T.selected = null; renderBoard(); window.print(); });
 
+  // ---------- 配布物の印刷 ----------
+  $('printLettersBtn').addEventListener('click', () => {
+    const placed = placedList();
+    if (!placed.length) { toast('日時が決まった生徒がいません'); return; }
+    const un = T.data.unassigned.length;
+    if (un && !confirm(`未割当の生徒が${un}人います。この人たちの分は印刷されません。続けますか？`)) return;
+    const area = $('printArea');
+    area.replaceChildren(...placed.map(({ sl, s }) => letterPage(T.letter, { grade: s.grade, cls: s.cls, name: s.name, time: Core.letterTime(sl, T.letter.timeStyle) })));
+    document.body.classList.add('print-letters');
+    $('letterMsg').textContent = `${placed.length}人分（${placed.length}枚）を印刷します。`;
+    window.print();
+  });
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-letters');
+    $('printArea').replaceChildren();
+  });
+
   // ---------- 配布物 ----------
   setupDrop($('tplDrop'), $('tplFile'), async (files) => {
     const f = files[0];
@@ -544,7 +657,7 @@
   $('docBtn').addEventListener('click', async () => {
     const d = T.data;
     const unassigned = d.unassigned.length;
-    const placed = d.slots.filter((x) => x.sid).map((sl) => ({ sl, s: studentOf(sl.sid) })).sort((a, b) => a.s.no - b.s.no);
+    const placed = placedList();
     if (!placed.length) { toast('日時が決まった生徒がいません'); return; }
     if (unassigned && !confirm(`未割当の生徒が${unassigned}人います。この人たちの分は作られません。続けますか？`)) return;
     $('docMsg').textContent = '作成中…';

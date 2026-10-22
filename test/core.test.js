@@ -123,6 +123,7 @@ test('選べる枠が少ない家庭を、ずらして入れる', () => {
 
 test('休憩は N人ごとに1枠', () => {
   const slots = Core.buildSlots([Core.parseBand('11月10日(火)13:30～14:30')], { minutes: 10, breakEvery: 2 });
+  assert.deepEqual(Core.buildSlots([Core.parseBand('11月10日(火)13:30～14:30')], { minutes: 10, breakEvery: 3 }).map((s) => s.kind), ['free', 'free', 'free', 'break', 'free', 'free']);
   assert.deepEqual(slots.map((s) => s.kind), ['free', 'free', 'break', 'free', 'free', 'break']);
 });
 
@@ -174,4 +175,12 @@ test('差し込みの値', () => {
   const f = Core.mergeFields({ grade: 3, cls: 'A', no: 5, name: '生徒3105' }, { month: 11, day: 10, dow: '火', start: 810, end: 820 });
   assert.equal(f['日時'], '11月10日（火）13:30～13:40');
   assert.equal(f['氏名'], '生徒3105');
+});
+
+test('文面シートを書き出して読み戻す（改行も残る）', () => {
+  const l = { ...Core.DEFAULT_LETTER, body: '　晩秋の候、\n　さて、', date: '令和８年１１月２日' };
+  const back = Core.rowsToLetter(Core.letterToRows(l));
+  assert.deepEqual(back, l);
+  assert.equal(Core.letterTime({ month: 11, day: 10, dow: '火', start: 810, end: 820 }, 'start'), '１１月１０日（火）　１３：３０～');
+  assert.equal(Core.letterTime({ month: 11, day: 10, dow: '火', start: 810, end: 820 }, 'range'), '１１月１０日（火）　１３：３０～１３：４０');
 });

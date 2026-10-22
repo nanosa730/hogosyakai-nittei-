@@ -425,6 +425,8 @@
       const ng = new Set(s.ng);
       pref.push([s.no, s.name, s.anytime ? 'いつでもよい' : '都合の悪い日時がある', ...sortedBands.map((b) => (ng.has(b.key) ? '×' : '')), s.sibText || '']);
     }
+    const sheets = { 日程: sched, 希望: pref };
+    if (meta.letter) sheets['文面'] = letterToRows(meta.letter);
     const info = [
       ['項目', '値'],
       ['学年', cls.grade],
@@ -433,7 +435,8 @@
       ['作成日時', meta.createdAt],
       ['ツール版', VERSION],
     ];
-    return { 日程: sched, 希望: pref, 情報: info };
+    sheets['情報'] = info;
+    return sheets;
   }
 
   /**
@@ -498,7 +501,7 @@
     }
     // 希望シートにいるのに日程にも未割当にもいない生徒
     for (const s of students.values()) if (!seen.has(s.id) && !unassigned.includes(s.id)) unassigned.push(s.id);
-    return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), problems };
+    return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), letter: rowsToLetter(sheets['文面']), problems };
   }
 
   // 表示用の文字（全角・半角はそのまま）
@@ -519,6 +522,63 @@
     if (v instanceof Date) return `${v.getHours()}:${pad2(v.getMinutes())}`;
     const m = norm(v).match(/(\d{1,2}):(\d{2})/);
     return m ? `${+m[1]}:${m[2]}` : '0:00';
+  }
+
+  // ---------- 配布物の文面（保護印刷シートと同じ構成） ----------
+  const LETTER_FIELDS = [
+    ['date', '発行日'],
+    ['to', '宛名'],
+    ['school', '学校名'],
+    ['principal', '校長名'],
+    ['title', '表題'],
+    ['body', '前文'],
+    ['item1', '１の見出し'],
+    ['note', '日時の下の注意書き'],
+    ['items', '２以降の項目'],
+    ['timeStyle', '時刻の書き方'],
+  ];
+  const DEFAULT_LETTER = {
+    date: '',
+    to: '保　護　者　様',
+    school: '名古屋市立汐路中学校',
+    principal: '鈴　木　暁　子',
+    title: '保護者会（個別懇談会）のお知らせ',
+    body: '　梅雨の候、皆様にはますますご健勝のこととお喜び申し上げます。平素より本校の教育活動にご理解とご協力を賜り、誠にありがとうございます。\n'
+      + '　さて、下記のとおり保護者会（個人懇談会）の日時が決定いたしましたので、ご案内申し上げます。\n'
+      + '　ご多用のところ恐縮ではございますが、ぜひご出席くださいますようお願いいたします。なお、やむを得ずご都合がつかない場合は、学級担任までお知らせください。',
+    item1: '１　懇談日時',
+    note: '※若干お時間が前後することがございます。ご了承ください。',
+    items: '２　場　所　　　各教室\n\n'
+      + '３　内　容　　　学習（進路）や生活等について\n\n'
+      + '４　その他　　　※　スリッパをご持参ください。\n'
+      + '　　　　　　　　※　正門からお入りください。\n'
+      + '　　　　　　　　※　お車での来校はご遠慮ください。\n'
+      + '　　　　　　　　※　自転車は正門の内側に駐輪してください。\n'
+      + '　　　　　　　　※　ご来校の際は、つりさげ名札を必ずお付けください。',
+    timeStyle: 'start',
+  };
+
+  // 令和の日付（全角）
+  function reiwaDate(d) {
+    return toFull(`令和${d.getFullYear() - 2018}年${d.getMonth() + 1}月${d.getDate()}日`);
+  }
+  function toFull(s) {
+    return String(s).replace(/[0-9:]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0));
+  }
+  function letterToRows(letter) {
+    return [['項目', '内容'], ...LETTER_FIELDS.map(([k, label]) => [label, letter[k] == null ? '' : String(letter[k])])];
+  }
+  function rowsToLetter(rows) {
+    if (!rows || rows.length < 2) return null;
+    const byLabel = new Map(rows.slice(1).map((r) => [text(r[0]), r[1] == null ? '' : String(r[1]).replace(/\r\n?/g, '\n')]));
+    const out = { ...DEFAULT_LETTER };
+    for (const [k, label] of LETTER_FIELDS) if (byLabel.has(label)) out[k] = byLabel.get(label);
+    return out;
+  }
+  // 配布物の日時（例：１１月１０日（火）　１３：３０～）
+  function letterTime(slot, style) {
+    const t = style === 'range' ? `${toHM(slot.start)}～${toHM(slot.end)}` : `${toHM(slot.start)}～`;
+    return toFull(`${slot.month}月${slot.day}日（${slot.dow}）　${t}`);
   }
 
   // 差し込み用の値
@@ -548,5 +608,6 @@
     buildSlots, schedule,
     classToSheets, sheetsToClass, timeCell,
     slotDateText, slotTimeText, mergeFields, label, cmpStudent,
+    LETTER_FIELDS, DEFAULT_LETTER, reiwaDate, toFull, letterToRows, rowsToLetter, letterTime,
   };
 });

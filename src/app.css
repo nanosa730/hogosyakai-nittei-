@@ -98,6 +98,40 @@ summary { cursor: pointer; font-weight: bold; }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2933; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 15px; z-index: 10; max-width: 90vw; }
 .flow li { margin-bottom: 6px; }
 .print-only { display: none; }
+/* 文面の入力 */
+.letter-edit { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.letter-form label { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.letter-form input, .letter-form textarea { font-size: 15px; padding: 6px; border: 1px solid var(--line); border-radius: 6px; color: var(--ink); background: var(--card); font-family: inherit; }
+.letter-form textarea { resize: vertical; line-height: 1.5; }
+.preview-wrap { border: 1px solid var(--line); background: #e9ecf0; padding: 10px; overflow: hidden; border-radius: 8px; }
+.preview-wrap .letter-page { transform: scale(var(--pv, .55)); transform-origin: top left; margin-bottom: calc((var(--pv, .55) - 1) * 267mm); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.preview-cap { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+@media (max-width: 800px) { .letter-edit { grid-template-columns: 1fr; } }
+.word-opt { margin-top: 16px; }
+/* 配布物1枚（A4） */
+.letter-page { width: 174mm; height: 265mm; background: #fff; color: #000; padding: 0; overflow: hidden; position: relative;
+  font-family: "UD デジタル 教科書体 NP-R", "UD Digi Kyokasho NP-R", "UD デジタル 教科書体 NP", "BIZ UD明朝", "ＭＳ 明朝", "MS Mincho", serif; font-size: 12pt; line-height: 1.5; }
+.letter-page .r { text-align: right; }
+.letter-page .c { text-align: center; }
+.letter-page .lp-date { margin-top: 4mm; }
+.letter-page .lp-to { margin-top: 2mm; }
+.letter-page .lp-school { margin-top: 2mm; }
+.letter-page .lp-title { font-size: 16pt; margin: 8mm 0 5mm; }
+.letter-page .lp-body { white-space: pre-wrap; min-height: 38mm; }
+.letter-page .lp-ki { margin: 6mm 0 4mm; }
+.letter-page .lp-box { border: 2px solid #000; margin: 3mm 0 8mm 9mm; padding: 4mm 6mm 3mm; }
+.letter-page .lp-who { display: flex; gap: 6mm; padding-left: 4mm; }
+.letter-page .lp-time { font-size: 16pt; font-weight: bold; margin: 2mm 0 2mm 12mm; }
+.letter-page .lp-note { margin-left: 8mm; }
+.letter-page .lp-items { white-space: pre-wrap; }
+#printArea { display: none; }
+@page { size: A4 portrait; margin: 15mm 18mm; }
+@media print {
+  body.print-letters > *:not(#printArea) { display: none !important; }
+  body.print-letters #printArea { display: block; }
+  body.print-letters #printArea .letter-page { break-after: page; page-break-after: always; }
+  body.print-letters #printArea .letter-page:last-child { break-after: auto; page-break-after: auto; }
+}
 @media print {
   body { background: #fff; font-size: 11pt; }
   .top, .step > h2 .num, .hint, .tray, .actions, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
