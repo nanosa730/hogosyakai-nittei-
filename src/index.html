@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>保護者会日程作成</title>
+<style>/*INLINE:src/app.css*/</style>
+</head>
+<body>
+<header class="top">
+  <h1>保護者会 日程作成ツール</h1>
+  <p class="sub">このページの中だけで処理します。データがインターネットに送られることはありません。</p>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-tab="admin">① 担当者：日程案を一括作成</button>
+    <button class="tab" role="tab" data-tab="teacher">② 担任：確認・修正・配布物</button>
+    <button class="tab" role="tab" data-tab="help">使い方</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ===== 担当者 ===== -->
+  <section id="admin" class="panel" hidden>
+    <div class="step">
+      <h2><span class="num">1</span>希望調査のExcelを入れる</h2>
+      <p>Formsから書き出した<strong>全学年分</strong>のExcelを、まとめてここに入れてください（兄弟姉妹をつなぐため）。</p>
+      <label class="drop" id="adminDrop">
+        <input type="file" id="adminFiles" accept=".xlsx" multiple hidden>
+        <span class="drop-main">ここにExcelをドラッグ</span>
+        <span class="drop-sub">または クリックしてファイルを選ぶ</span>
+      </label>
+      <div id="fileList"></div>
+    </div>
+
+    <div class="step" id="stepSettings" hidden>
+      <h2><span class="num">2</span>面談枠の設定</h2>
+      <div class="form-grid">
+        <label>1人あたりの時間
+          <select id="optMinutes">
+            <option value="10" selected>10分</option><option value="12">12分</option><option value="15">15分</option><option value="20">20分</option>
+          </select>
+        </label>
+        <label>休憩
+          <select id="optBreak">
+            <option value="0" selected>入れない</option><option value="4">4人ごとに1枠</option><option value="5">5人ごとに1枠</option><option value="6">6人ごとに1枠</option><option value="8">8人ごとに1枠</option>
+          </select>
+        </label>
+        <label>兄弟姉妹の間
+          <select id="optGap">
+            <option value="0" selected>続けて（移動時間なし）</option><option value="slot">1枠あける（移動時間）</option>
+          </select>
+        </label>
+        <label>割り振り方
+          <select id="optSpread">
+            <option value="1" selected>各日の人数をそろえる</option><option value="0">早い日から詰める</option>
+          </select>
+        </label>
+      </div>
+      <h3>担任が出られない時間帯</h3>
+      <p class="hint">出張・会議などで担任が出られないところをクリックすると「不可」になります（もう一度クリックで戻ります）。</p>
+      <div id="blockedGrid"></div>
+    </div>
+
+    <div class="step" id="stepCheck" hidden>
+      <h2><span class="num">3</span>確認してください</h2>
+      <div id="sibProblems"></div>
+      <details id="sibLinksBox"><summary id="sibLinksSummary">見つかった兄弟姉妹</summary><div id="sibLinks"></div></details>
+      <details id="issuesBox"><summary id="issuesSummary">データの注意点</summary><ul id="issues"></ul></details>
+    </div>
+
+    <div class="step" id="stepRun" hidden>
+      <h2><span class="num">4</span>日程案を作る</h2>
+      <button class="btn primary big" id="runBtn">日程案を作成する</button>
+      <div id="result"></div>
+    </div>
+  </section>
+
+  <!-- ===== 担任 ===== -->
+  <section id="teacher" class="panel" hidden>
+    <div class="step">
+      <h2><span class="num">1</span>自分の学級の日程案を開く</h2>
+      <p>担当者が作った「日程案_〇年〇組.xlsx」を開きます。</p>
+      <label class="drop" id="teacherDrop">
+        <input type="file" id="teacherFile" accept=".xlsx" hidden>
+        <span class="drop-main">ここに日程案のExcelをドラッグ</span>
+        <span class="drop-sub">または クリックしてファイルを選ぶ</span>
+      </label>
+    </div>
+
+    <div class="step" id="boardStep" hidden>
+      <h2><span class="num">2</span><span id="boardTitle">日程の確認・修正</span></h2>
+      <p class="hint"><strong>動かし方：</strong>名前をクリックして選び、移したい枠をクリック（ドラッグでもできます）。入っている枠に移すと入れ替わります。</p>
+      <div id="warnings"></div>
+      <div class="tray" id="tray"><div class="tray-head">未割当（ここに移すと日程から外れます）</div><div class="tray-body" id="trayBody"></div></div>
+      <div class="board" id="board"></div>
+      <div class="actions">
+        <button class="btn primary" id="saveBtn">保存する</button>
+        <button class="btn" id="printBtn">一覧を印刷</button>
+        <span id="saveMsg" class="msg"></span>
+      </div>
+    </div>
+
+    <div class="step" id="docStep" hidden>
+      <h2><span class="num">3</span>配布物（Word）を作る</h2>
+      <p>配布物のWordで、名前や日時を入れたい場所に下の<strong>目印</strong>を書いておき、そのWordを選んでください。1人1ページで全員分が入ったWordができます。</p>
+      <table class="marks">
+        <tr><th>目印</th><th>入る内容（例）</th></tr>
+        <tr><td>【氏名】</td><td>生徒の名前</td></tr>
+        <tr><td>【学年】【組】【番号】</td><td>3 / A / 5</td></tr>
+        <tr><td>【日時】</td><td>11月10日（火）13:30～13:40</td></tr>
+        <tr><td>【月日】【曜日】【時刻】【終了時刻】</td><td>11月10日 / 火 / 13:30 / 13:40</td></tr>
+      </table>
+      <label class="drop small" id="tplDrop">
+        <input type="file" id="tplFile" accept=".docx" hidden>
+        <span class="drop-main">配布物のWordをドラッグ</span>
+        <span class="drop-sub">または クリックして選ぶ</span>
+      </label>
+      <p id="tplName" class="msg"></p>
+      <button class="btn primary big" id="docBtn" disabled>配布物を作る</button>
+      <span id="docMsg" class="msg"></span>
+    </div>
+  </section>
+
+  <!-- ===== 使い方 ===== -->
+  <section id="help" class="panel" hidden>
+    <div class="step">
+      <h2>全体の流れ</h2>
+      <ol class="flow">
+        <li><strong>担当者</strong>：全学年のFormsのExcelを入れて「日程案を作成する」→ 学級ごとのExcel（日程案_〇年〇組.xlsx）を共有フォルダに保存。</li>
+        <li><strong>担任</strong>：このページの「②担任」で自分の学級の日程案を開き、必要なら順番を入れ替えて「保存する」。</li>
+        <li><strong>担任</strong>：配布物のWordを選んで「配布物を作る」→ できたWordを確認して印刷。</li>
+      </ol>
+      <h2>自動で割り振るときの決まり</h2>
+      <ul>
+        <li>×のついた時間帯には入れません。「いつでもよい」を選んでいても×があれば×を優先します。</li>
+        <li>兄弟姉妹は、同じ日の続きの時間（または1枠あけて）になるように最初に割り振ります。</li>
+        <li>次に、×が多く選べる時間が少ない家庭から順に割り振ります。</li>
+        <li>同じ生徒の回答が2件あるときは、後から送信された回答を使います。</li>
+        <li>入りきらない家庭は「未割当」に入ります。担任が手で入れてください。</li>
+      </ul>
+      <h2>Excelで直接直してもよい</h2>
+      <p>日程案のExcelの「日程」シートで、名前と出席番号の行を入れ替えて保存しても大丈夫です。もう一度このページで開くと、×の時間に入っていないかなどをチェックします。</p>
+      <h2>兄弟姉妹の時間を動かしたとき</h2>
+      <p>兄弟姉妹のいる家庭を動かすと注意が出ます。相手の学級の担任に連絡してください。</p>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script>/*INLINE:node_modules/xlsx/dist/xlsx.mini.min.js*/</script>
+<script>/*INLINE:node_modules/jszip/dist/jszip.min.js*/</script>
+<script>/*INLINE:src/core.js*/</script>
+<script>/*INLINE:src/docx.js*/</script>
+<script>/*INLINE:src/app.js*/</script>
+</body>
+</html>

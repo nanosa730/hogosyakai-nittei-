@@ -1,0 +1,25 @@
+{
+  "name": "hogosyakai-nittei",
+  "version": "1.0.0",
+  "description": "保護者会の日程作成ツール",
+  "scripts": {
+    "build": "node tools/build.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nanosa730/hogosyakai-nittei-.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nanosa730/hogosyakai-nittei-/issues"
+  },
+  "homepage": "https://github.com/nanosa730/hogosyakai-nittei-#readme",
+  "devDependencies": {
+    "jszip": "^3.10.1",
+    "xlsx": "^0.18.5"
+  },
+  "private": true
+}
