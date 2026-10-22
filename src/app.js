@@ -158,6 +158,47 @@
     redraw();
   }
 
+  // ---------- 学級の日程表（A4・1枚） ----------
+  /**
+   * @param c {grade, cls, slots, unassigned}
+   * @param who sid -> {no, name, sib}
+   */
+  function schedulePage(c, who) {
+    const days = [...new Set(c.slots.map((x) => x.dateKey))].sort();
+    const times = [...new Set(c.slots.map((x) => x.start))].sort((a, b) => a - b);
+    const at = new Map(c.slots.map((x) => [`${x.dateKey} ${x.start}`, x]));
+    const first = (dk) => c.slots.find((x) => x.dateKey === dk);
+    let sibUsed = false;
+    const cell = (sl) => {
+      if (!sl) return h('td', { class: 'none' }, '－');
+      if (sl.kind === 'break') return h('td', { class: 'brk' }, '休憩');
+      if (sl.kind === 'blocked') return h('td', { class: 'brk' }, '担任不可');
+      if (!sl.sid) return h('td', {});
+      const w = who(sl.sid);
+      if (w.sib) sibUsed = true;
+      return h('td', {}, h('span', { class: 'sno' }, w.no), w.name, w.sib ? h('span', { class: 'smark' }, '◆') : null);
+    };
+    // 行が多いときは文字を小さくして1枚に収める
+    const size = times.length <= 16 ? 'l' : times.length <= 24 ? 'm' : 's';
+    const total = c.slots.filter((x) => x.sid).length;
+    return h('div', { class: `sched-page size-${size}` },
+      h('div', { class: 'sp-head' }, h('div', { class: 'sp-title' }, `${c.grade}年${c.cls}組　個人懇談会　日程表`),
+        h('div', { class: 'sp-sub' }, `${total}人　${new Date().toLocaleDateString('ja-JP')} 現在`)),
+      h('table', { class: 'sp-table' },
+        h('thead', {}, h('tr', {}, h('th', { class: 'tcol' }, '時刻'),
+          days.map((dk) => { const f = first(dk); return h('th', {}, `${f.month}/${f.day}（${f.dow}）`, h('br'), h('span', { class: 'cnt' }, `${c.slots.filter((x) => x.dateKey === dk && x.sid).length}人`)); }))),
+        h('tbody', {}, times.map((t) => h('tr', {}, h('th', { class: 'tcol' }, Core.toHM(t)), days.map((dk) => cell(at.get(`${dk} ${t}`))))))),
+      h('div', { class: 'sp-foot' },
+        c.unassigned.length ? h('div', {}, '未割当：', c.unassigned.map((sid) => { const w = who(sid); return `${w.no}番 ${w.name}`; }).join('、')) : null,
+        sibUsed ? h('div', {}, '◆ 兄弟姉妹あり（相手の学級と続けて面談）') : null));
+  }
+
+  function printPages(pages) {
+    $('printArea').replaceChildren(...pages);
+    document.body.classList.add('print-letters');
+    window.print();
+  }
+
   // ---------- タブ ----------
   function showTab(name) {
     document.querySelectorAll('.tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
@@ -404,6 +445,7 @@
         h('td', {}, sib ? `${sib}人` : ''),
         h('td', {},
           h('button', { class: 'btn small', onclick: () => download(sheetsToBlob(classSheets(ck)), fileNameOf(c.grade, c.cls)) }, '保存'), ' ',
+          h('button', { class: 'btn small', onclick: () => printSchedules([ck]) }, '日程表を印刷'), ' ',
           h('button', { class: 'btn small', onclick: () => { T.load(classSheets(ck), fileNameOf(c.grade, c.cls), null); showTab('teacher'); } }, '開いて確認'))));
     }
     const notes = res.notes;
@@ -412,7 +454,8 @@
       h('div', { class: 'actions' },
         h('button', { class: 'btn primary', onclick: () => saveAllDownloads(keys) }, '「ダウンロード」フォルダに全学級を保存'),
         'showDirectoryPicker' in window ? h('button', { class: 'btn', onclick: () => saveAllToFolder(keys) }, '保存先フォルダを選んで保存') : null,
-        h('button', { class: 'btn', onclick: () => saveAllZip(keys) }, 'ZIPにまとめてダウンロード')),
+        h('button', { class: 'btn', onclick: () => saveAllZip(keys) }, 'ZIPにまとめてダウンロード'),
+        h('button', { class: 'btn', onclick: () => printSchedules(keys) }, '全学級の日程表を印刷（1学級1枚）')),
       h('p', { class: 'hint' }, '「ダウンロード」に保存したときに「複数ファイルのダウンロード」の確認が出たら「許可」を押してください。'
         + '「保存先フォルダを選んで保存」では、「ダウンロード」「デスクトップ」「ドキュメント」そのものは選べません。共有フォルダか、その中に作ったフォルダ（例：保護者会）を選んでください。'),
       tbl,
@@ -435,6 +478,13 @@
     } catch (e) {
       toast(`保存できませんでした：${e.message}。ZIPでダウンロードしてください`, 6000);
     }
+  }
+
+  function printSchedules(keys) {
+    const { res } = A.result;
+    const sibs = new Set(res.families.flat().map((s) => s.id));
+    const who = (sid) => { const s = res.byId.get(sid); return { no: s.no, name: s.name, sib: sibs.has(sid) }; };
+    printPages(keys.map((ck) => schedulePage(res.classes.get(ck), who)));
   }
 
   // 1学級ずつ普通にダウンロードする（いちばん確実）
@@ -710,7 +760,11 @@
     T.dirty = false;
     $('saveMsg').textContent = `「ダウンロード」フォルダに ${T.fileName} を保存しました。共有フォルダのファイルと置き換えてください。`;
   });
-  $('printBtn').addEventListener('click', () => { T.selected = null; renderBoard(); window.print(); });
+  $('printBtn').addEventListener('click', () => {
+    const d = T.data;
+    const who = (sid) => { const s = studentOf(sid); const info = d.sibInfo.get(sid) || ''; return { no: s.no, name: s.name, sib: !!info && !info.startsWith('要確認') }; };
+    printPages([schedulePage(d, who)]);
+  });
 
   // ---------- 配布物の印刷 ----------
   $('printLettersBtn').addEventListener('click', () => {
@@ -718,11 +772,8 @@
     if (!placed.length) { toast('日時が決まった生徒がいません'); return; }
     const un = T.data.unassigned.length;
     if (un && !confirm(`未割当の生徒が${un}人います。この人たちの分は印刷されません。続けますか？`)) return;
-    const area = $('printArea');
-    area.replaceChildren(...placed.map(({ sl, s }) => letterPage(T.letter, { grade: s.grade, cls: s.cls, name: s.name, time: Core.letterTime(sl, T.letter.timeStyle) })));
-    document.body.classList.add('print-letters');
     $('letterMsg').textContent = `${placed.length}人分（${placed.length}枚）を印刷します。`;
-    window.print();
+    printPages(placed.map(({ sl, s }) => letterPage(T.letter, { grade: s.grade, cls: s.cls, name: s.name, time: Core.letterTime(sl, T.letter.timeStyle) })));
   });
   window.addEventListener('afterprint', () => {
     document.body.classList.remove('print-letters');

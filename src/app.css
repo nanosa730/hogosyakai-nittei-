@@ -129,13 +129,32 @@ summary { cursor: pointer; font-weight: bold; }
 .letter-page .lp-time { font-size: 16pt; font-weight: bold; margin: 2mm 0 2mm 12mm; }
 .letter-page .lp-note { margin-left: 8mm; }
 .letter-page .lp-items { white-space: pre-wrap; }
+/* 学級の日程表（A4・1枚） */
+.sched-page { -webkit-print-color-adjust: exact; print-color-adjust: exact; width: 174mm; height: 265mm; background: #fff; color: #000; display: flex; flex-direction: column; overflow: hidden;
+  font-family: "UD デジタル 教科書体 NP-R", "UD Digi Kyokasho NP-R", "BIZ UDゴシック", "Meiryo", sans-serif; }
+.sched-page .sp-head { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid #000; padding-bottom: 2mm; margin-bottom: 3mm; }
+.sched-page .sp-title { font-size: 16pt; font-weight: bold; }
+.sched-page .sp-sub { font-size: 10pt; }
+.sched-page .sp-table { width: 99.4%; table-layout: fixed; border-collapse: collapse; flex: 1; }
+.sched-page .sp-table th, .sched-page .sp-table td { border: 1px solid #000; padding: 0 1.5mm; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: clip; }
+.sched-page .sp-table thead th { text-align: center; background: #eee; padding: 1mm; font-size: 11pt; height: 12mm; }
+.sched-page .sp-table .tcol { width: 14mm; text-align: center; background: #f4f4f4; }
+.sched-page .sp-table td.brk { background: #e6e6e6; text-align: center; color: #333; }
+.sched-page .sp-table td.none { background: #f2f2f2; text-align: center; color: #999; }
+.sched-page .cnt { font-size: 9pt; font-weight: normal; }
+.sched-page .sno { display: inline-block; min-width: 6mm; font-size: .8em; color: #333; }
+.sched-page .smark { margin-left: 1mm; font-size: .8em; }
+.sched-page.size-l .sp-table td, .sched-page.size-l .sp-table tbody th { font-size: 11pt; }
+.sched-page.size-m .sp-table td, .sched-page.size-m .sp-table tbody th { font-size: 9.5pt; }
+.sched-page.size-s .sp-table td, .sched-page.size-s .sp-table tbody th { font-size: 8pt; }
+.sched-page .sp-foot { font-size: 10pt; margin-top: 2mm; min-height: 6mm; }
 #printArea { display: none; }
 @page { size: A4 portrait; margin: 15mm 18mm; }
 @media print {
   body.print-letters > *:not(#printArea) { display: none !important; }
   body.print-letters #printArea { display: block; }
-  body.print-letters #printArea .letter-page { break-after: page; page-break-after: always; }
-  body.print-letters #printArea .letter-page:last-child { break-after: auto; page-break-after: auto; }
+  body.print-letters #printArea > * { break-after: page; page-break-after: always; }
+  body.print-letters #printArea > *:last-child { break-after: auto; page-break-after: auto; }
 }
 @media print {
   body { background: #fff; font-size: 11pt; }
