@@ -77,7 +77,7 @@ summary { cursor: pointer; font-weight: bold; }
 .tray.target { border-color: var(--accent); background: #f0f6ff; cursor: pointer; }
 .tray-head { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 .tray-body { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; }
-.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .day { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
 .day h3 { margin: 0; padding: 6px 10px; background: var(--bg); font-size: 15px; border-bottom: 1px solid var(--line); }
 .slot { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-top: 1px solid #eef0f3; min-height: 36px; }
@@ -87,8 +87,13 @@ summary { cursor: pointer; font-weight: bold; }
 .slot.over { background: #d9e9ff; }
 .slot.break, .slot.blocked { background: repeating-linear-gradient(135deg, #f3f4f6, #f3f4f6 6px, #e9ebef 6px, #e9ebef 12px); color: var(--muted); font-size: 13px; }
 .slot .empty { color: #b0b7c3; font-size: 13px; flex: 1; }
-.slot .mini { margin-left: auto; visibility: hidden; }
-.slot:hover .mini { visibility: visible; }
+.slot { position: relative; }
+.slot .mini { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; gap: 2px; padding: 2px; background: var(--card); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.25); z-index: 2; }
+.slot .mini .btn { padding: 1px 5px; font-size: 12px; white-space: nowrap; }
+.day-add { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--line); background: var(--bg); }
+.badge.out { background: var(--warn); }
+.badge.moved { background: #2b6cb0; }
+.slot:hover .mini, .slot:focus-within .mini { display: inline-flex; }
 .card { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; background: var(--card); cursor: grab; font-size: 14px; user-select: none; flex: 1; min-width: 0; }
 .tray .card { flex: none; }
 .card .no { color: var(--muted); font-size: 12px; }
@@ -140,7 +145,7 @@ summary { cursor: pointer; font-weight: bold; }
 }
 @media print {
   body { background: #fff; font-size: 11pt; }
-  .top, .step > h2 .num, .hint, .tray, .actions, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
+  .top, .step > h2 .num, .hint, .tray, .actions, .day-add, .badge.moved, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
   .step { border: none; padding: 0; }
   .board { grid-template-columns: repeat(3, 1fr); }
   .card { border: none; padding: 0; }
@@ -237,7 +242,8 @@ summary { cursor: pointer; font-weight: bold; }
 
     <div class="step" id="boardStep" hidden>
       <h2><span class="num">2</span><span id="boardTitle">日程の確認・修正</span></h2>
-      <p class="hint"><strong>動かし方：</strong>名前をクリックして選び、移したい枠をクリック（ドラッグでもできます）。入っている枠に移すと入れ替わります。</p>
+      <p class="hint"><strong>動かし方：</strong>名前をクリックして選び、移したい枠をクリック（ドラッグでもできます）。入っている枠に移すと入れ替わります。<br>
+      <strong>枠・休憩の増減：</strong>行にマウスをのせると「上に枠」「上に休憩」「削除」が出ます。足すと下の枠が後ろに、消すと前にずれます。各日の下の「＋最後に枠」「＋最後に休憩」でも足せます。</p>
       <div id="warnings"></div>
       <div class="tray" id="tray"><div class="tray-head">未割当（ここに移すと日程から外れます）</div><div class="tray-body" id="trayBody"></div></div>
       <div class="board" id="board"></div>
@@ -296,6 +302,8 @@ summary { cursor: pointer; font-weight: bold; }
       </ul>
       <h2>Excelで直接直してもよい</h2>
       <p>日程案のExcelの「日程」シートで、名前と出席番号の行を入れ替えて保存しても大丈夫です。もう一度このページで開くと、×の時間に入っていないかなどをチェックします。</p>
+      <h2>面談枠や休憩を足したり消したりしたとき</h2>
+      <p>下の枠の時刻がずれます。ずれた結果、保護者が×を付けた時間帯に入ると赤で「直してください」、希望調査の時間帯の外に出ると「確認してください」と出ます。開いたときから時刻が変わった家庭には「時刻変更」の印が付きます。</p>
       <h2>配布物の文面を変えたいとき</h2>
       <p>担当者は「①担当者」の「4 配布物の文面」で、全学級共通の文面（時候のあいさつ、持ち物など）を直せます。担任は「3 配布物を印刷する」の「文面を直す」で、自分の学級だけ直せます（日程案を保存すると一緒に保存されます）。</p>
       <h2>兄弟姉妹の時間を動かしたとき</h2>
@@ -824,6 +832,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       const kind = name === norm(BREAK_LABEL) || name === '休憩' ? 'break' : name === norm(BLOCKED_LABEL) ? 'blocked' : 'free';
       slots.push({ bandKey: band ? band.key : `${pad2(+dm[1])}/${pad2(+dm[2])} ?`, dateKey: `${pad2(+dm[1])}/${pad2(+dm[2])}`, month: +dm[1], day: +dm[2], dow: norm(r[1]), start, end, kind, sid: kind === 'free' ? sid : null, memo: text(r[7]) });
     }
+    refreshBandKeys(slots, bands);
     // 同じ生徒が2回出てくる（Excelで直接編集したとき）
     const seen = new Map();
     for (const sl of slots) {
@@ -834,6 +843,44 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     // 希望シートにいるのに日程にも未割当にもいない生徒
     for (const s of students.values()) if (!seen.has(s.id) && !unassigned.includes(s.id)) unassigned.push(s.id);
     return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), letter: rowsToLetter(sheets['文面']), problems };
+  }
+
+  // ---------- 担任が枠を足したり消したりする ----------
+  // 枠と重なる希望調査の時間帯。outside = 時間帯から外れている部分がある
+  function bandsOfSlot(bands, sl) {
+    const same = bands.filter((b) => b.month === sl.month && b.day === sl.day).sort((a, b) => toMin(a.start) - toMin(b.start));
+    const keys = same.filter((b) => toMin(b.start) < sl.end && sl.start < toMin(b.end)).map((b) => b.key);
+    let t = sl.start;
+    for (const b of same) if (toMin(b.start) <= t && toMin(b.end) > t) t = toMin(b.end);
+    return { keys, outside: t < sl.end };
+  }
+  function refreshBandKeys(slots, bands) {
+    for (const sl of slots) sl.bandKey = bandsOfSlot(bands, sl).keys[0] || `${sl.dateKey} 外`;
+  }
+  // ref の前（ref = null なら dateKey の日の最後）に枠を入れ、後ろの枠をずらす
+  function insertSlot(slots, bands, ref, kind, len, dateKey) {
+    let at, base;
+    if (ref) {
+      at = slots.indexOf(ref);
+      base = ref;
+      for (const x of slots) if (x.dateKey === ref.dateKey && x.start >= ref.start) { x.start += len; x.end += len; }
+    } else {
+      const day = slots.filter((x) => x.dateKey === dateKey);
+      base = day[day.length - 1];
+      at = slots.indexOf(base) + 1;
+    }
+    const start = ref ? ref.start - len : base.end;
+    const sl = { bandKey: '', dateKey: base.dateKey, month: base.month, day: base.day, dow: base.dow, start, end: start + len, kind, sid: null, memo: '' };
+    slots.splice(at, 0, sl);
+    refreshBandKeys(slots, bands);
+    return sl;
+  }
+  // 枠を消し、後ろの枠を前に詰める
+  function removeSlot(slots, bands, sl) {
+    const len = sl.end - sl.start;
+    slots.splice(slots.indexOf(sl), 1);
+    for (const x of slots) if (x.dateKey === sl.dateKey && x.start > sl.start) { x.start -= len; x.end -= len; }
+    refreshBandKeys(slots, bands);
   }
 
   // 表示用の文字（全角・半角はそのまま）
@@ -940,6 +987,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     buildSlots, schedule,
     classToSheets, sheetsToClass, timeCell,
     slotDateText, slotTimeText, mergeFields, label, cmpStudent,
+    bandsOfSlot, refreshBandKeys, insertSlot, removeSlot,
     LETTER_FIELDS, DEFAULT_LETTER, reiwaDate, toFull, letterToRows, rowsToLetter, letterTime,
   };
 });
@@ -1558,11 +1606,47 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   window.addEventListener('beforeunload', (e) => { if (T.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   function studentOf(sid) { return T.data.students.get(sid); }
-  function isNg(sid, slot) { return studentOf(sid).ng.includes(slot.bandKey); }
+  function isNg(sid, slot) {
+    const ng = studentOf(sid).ng;
+    return Core.bandsOfSlot(T.data.bands, slot).keys.some((k) => ng.includes(k));
+  }
+  function isOutside(slot) { return Core.bandsOfSlot(T.data.bands, slot).outside; }
+  function timeChanged(sid, slot) { const o = T.original.get(sid); return !!o && o !== slotKey(slot); }
+  const slotLen = (sl) => +T.data.minutes || sl.end - sl.start;
+
+  // 枠・休憩の追加と削除（後ろの枠は時刻がずれる）
+  function addSlot(ref, kind, dateKey) {
+    const d = T.data;
+    const len = slotLen(ref || d.slots.find((x) => x.dateKey === dateKey));
+    Core.insertSlot(d.slots, d.bands, ref, kind, len, dateKey);
+    T.dirty = true;
+    renderBoard();
+  }
+  function deleteSlot(sl) {
+    const d = T.data;
+    if (sl.sid) {
+      if (!confirm(`${Core.label(studentOf(sl.sid))} の枠を消します。この生徒は「未割当」に移ります。よろしいですか？`)) return;
+      d.unassigned.push(sl.sid);
+    }
+    Core.removeSlot(d.slots, d.bands, sl);
+    T.dirty = true;
+    renderBoard();
+  }
+  function rowTools(sl, ...extra) {
+    const btn = (label, title, fn) => h('button', { class: 'btn small', title, onclick: (e) => { e.stopPropagation(); fn(); } }, label);
+    const len = slotLen(sl);
+    return h('span', { class: 'mini' },
+      ...extra.map(([label, fn]) => btn(label, '', fn)),
+      btn('上に枠', `この上に面談枠を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'free')),
+      btn('上に休憩', `この上に休憩を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'break')),
+      btn('削除', `この枠を消します（下の枠は${sl.end - sl.start}分ずつ前に詰まります）`, () => deleteSlot(sl)));
+  }
 
   function card(sid, slot) {
     const s = studentOf(sid);
     const ng = slot && isNg(sid, slot);
+    const out = slot && !ng && isOutside(slot);
+    const moved = slot && timeChanged(sid, slot);
     const sib = T.data.sibInfo.get(sid);
     const c = h('div', {
       class: 'card' + (T.selected === sid ? ' sel' : '') + (ng ? ' ng' : ''),
@@ -1572,7 +1656,9 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       ondragstart: (e) => { T.selected = sid; e.dataTransfer.setData('text/plain', sid); e.dataTransfer.effectAllowed = 'move'; },
     }, h('span', { class: 'no' }, `${s.no}`), h('span', { class: 'nm' }, s.name),
     sib ? h('span', { class: 'badge sib' }, '兄弟') : null,
-    ng ? h('span', { class: 'badge ng' }, '×') : null);
+    ng ? h('span', { class: 'badge ng' }, '×') : null,
+    out ? h('span', { class: 'badge out' }, '時間外') : null,
+    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null);
     return c;
   }
 
@@ -1625,7 +1711,8 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     for (const sl of d.slots) { if (!byDate.has(sl.dateKey)) byDate.set(sl.dateKey, []); byDate.get(sl.dateKey).push(sl); }
     for (const [, list] of [...byDate].sort()) {
       const first = list[0];
-      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, ` ${list.filter((x) => x.sid).length}人`)));
+      const last = list[list.length - 1];
+      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, ` ${list.filter((x) => x.sid).length}人・${Core.toHM(last.end)}まで`)));
       let prevEnd = null;
       for (const sl of list) {
         if (prevEnd != null && sl.start > prevEnd) col.append(h('div', { class: 'slot break' }, h('span', { class: 't' }, ''), `（${sl.start - prevEnd}分 あき）`));
@@ -1634,17 +1721,20 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         let row;
         if (sl.kind !== 'free') {
           row = h('div', { class: 'slot ' + sl.kind }, t, sl.kind === 'break' ? '休憩' : '担任不可',
-            h('button', { class: 'btn small mini', onclick: (e) => { e.stopPropagation(); sl.kind = 'free'; T.dirty = true; renderBoard(); } }, '面談枠に戻す'));
+            rowTools(sl, ['面談枠にする', () => { sl.kind = 'free'; T.dirty = true; renderBoard(); }]));
         } else if (sl.sid) {
-          row = h('div', { class: 'slot' + (T.selected && T.selected !== sl.sid ? ' target' : '') }, t, card(sl.sid, sl));
+          row = h('div', { class: 'slot' + (T.selected && T.selected !== sl.sid ? ' target' : '') }, t, card(sl.sid, sl), rowTools(sl));
           dropTarget(row, () => moveTo(sl));
         } else {
           row = h('div', { class: 'slot' + (T.selected ? ' target' : '') }, t, h('span', { class: 'empty' }, '空き'),
-            h('button', { class: 'btn small mini', onclick: (e) => { e.stopPropagation(); sl.kind = 'break'; T.dirty = true; renderBoard(); } }, '休憩にする'));
+            rowTools(sl, ['休憩にする', () => { sl.kind = 'break'; T.dirty = true; renderBoard(); }]));
           dropTarget(row, () => moveTo(sl));
         }
         col.append(row);
       }
+      col.append(h('div', { class: 'day-add' },
+        h('button', { class: 'btn small', onclick: () => addSlot(null, 'free', first.dateKey) }, '＋ 最後に枠'),
+        h('button', { class: 'btn small', onclick: () => addSlot(null, 'break', first.dateKey) }, '＋ 最後に休憩')));
       board.append(col);
     }
     renderWarnings();
@@ -1655,7 +1745,16 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     const bad = [];
     const warn = [];
     for (const sl of d.slots) {
-      if (sl.sid && isNg(sl.sid, sl)) bad.push(`${Core.label(studentOf(sl.sid))}：${Core.slotDateText(sl)}${Core.slotTimeText(sl)} は都合が悪い（×）時間です`);
+      if (!sl.sid) continue;
+      const who = Core.label(studentOf(sl.sid));
+      const when = `${Core.slotDateText(sl)}${Core.slotTimeText(sl)}`;
+      if (isNg(sl.sid, sl)) bad.push(`${who}：${when} は都合が悪い（×）時間です${timeChanged(sl.sid, sl) ? '（枠を足したり消したりして時刻がずれました）' : ''}`);
+      else if (isOutside(sl)) warn.push(`${who}：${when} は希望調査の時間帯の外です。保護者の都合を確認してください`);
+    }
+    const changed = d.slots.filter((sl) => sl.sid && timeChanged(sl.sid, sl));
+    if (changed.length) {
+      warn.push(`開いたときから時刻が変わった家庭が${changed.length}件あります（すでに配布物を配っていれば連絡が必要です）：`
+        + changed.map((sl) => { const [dk, st] = T.original.get(sl.sid).split(' '); return `${studentOf(sl.sid).no}番 ${dk.replace(/^0/, '').replace('/0', '/')} ${Core.toHM(+st)}→${sl.month}/${sl.day} ${Core.toHM(sl.start)}`; }).join('、'));
     }
     for (const p of d.problems) bad.push(p);
     for (const sid of d.unassigned) bad.push(`${Core.label(studentOf(sid))}：まだ日時が決まっていません（未割当）`);

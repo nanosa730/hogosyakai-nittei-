@@ -492,6 +492,7 @@
       const kind = name === norm(BREAK_LABEL) || name === '休憩' ? 'break' : name === norm(BLOCKED_LABEL) ? 'blocked' : 'free';
       slots.push({ bandKey: band ? band.key : `${pad2(+dm[1])}/${pad2(+dm[2])} ?`, dateKey: `${pad2(+dm[1])}/${pad2(+dm[2])}`, month: +dm[1], day: +dm[2], dow: norm(r[1]), start, end, kind, sid: kind === 'free' ? sid : null, memo: text(r[7]) });
     }
+    refreshBandKeys(slots, bands);
     // 同じ生徒が2回出てくる（Excelで直接編集したとき）
     const seen = new Map();
     for (const sl of slots) {
@@ -502,6 +503,44 @@
     // 希望シートにいるのに日程にも未割当にもいない生徒
     for (const s of students.values()) if (!seen.has(s.id) && !unassigned.includes(s.id)) unassigned.push(s.id);
     return { grade, cls, slots, unassigned, students, bands, sibInfo, minutes: infoGet('1人あたり（分）'), letter: rowsToLetter(sheets['文面']), problems };
+  }
+
+  // ---------- 担任が枠を足したり消したりする ----------
+  // 枠と重なる希望調査の時間帯。outside = 時間帯から外れている部分がある
+  function bandsOfSlot(bands, sl) {
+    const same = bands.filter((b) => b.month === sl.month && b.day === sl.day).sort((a, b) => toMin(a.start) - toMin(b.start));
+    const keys = same.filter((b) => toMin(b.start) < sl.end && sl.start < toMin(b.end)).map((b) => b.key);
+    let t = sl.start;
+    for (const b of same) if (toMin(b.start) <= t && toMin(b.end) > t) t = toMin(b.end);
+    return { keys, outside: t < sl.end };
+  }
+  function refreshBandKeys(slots, bands) {
+    for (const sl of slots) sl.bandKey = bandsOfSlot(bands, sl).keys[0] || `${sl.dateKey} 外`;
+  }
+  // ref の前（ref = null なら dateKey の日の最後）に枠を入れ、後ろの枠をずらす
+  function insertSlot(slots, bands, ref, kind, len, dateKey) {
+    let at, base;
+    if (ref) {
+      at = slots.indexOf(ref);
+      base = ref;
+      for (const x of slots) if (x.dateKey === ref.dateKey && x.start >= ref.start) { x.start += len; x.end += len; }
+    } else {
+      const day = slots.filter((x) => x.dateKey === dateKey);
+      base = day[day.length - 1];
+      at = slots.indexOf(base) + 1;
+    }
+    const start = ref ? ref.start - len : base.end;
+    const sl = { bandKey: '', dateKey: base.dateKey, month: base.month, day: base.day, dow: base.dow, start, end: start + len, kind, sid: null, memo: '' };
+    slots.splice(at, 0, sl);
+    refreshBandKeys(slots, bands);
+    return sl;
+  }
+  // 枠を消し、後ろの枠を前に詰める
+  function removeSlot(slots, bands, sl) {
+    const len = sl.end - sl.start;
+    slots.splice(slots.indexOf(sl), 1);
+    for (const x of slots) if (x.dateKey === sl.dateKey && x.start > sl.start) { x.start -= len; x.end -= len; }
+    refreshBandKeys(slots, bands);
   }
 
   // 表示用の文字（全角・半角はそのまま）
@@ -608,6 +647,7 @@
     buildSlots, schedule,
     classToSheets, sheetsToClass, timeCell,
     slotDateText, slotTimeText, mergeFields, label, cmpStudent,
+    bandsOfSlot, refreshBandKeys, insertSlot, removeSlot,
     LETTER_FIELDS, DEFAULT_LETTER, reiwaDate, toFull, letterToRows, rowsToLetter, letterTime,
   };
 });

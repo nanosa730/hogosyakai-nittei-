@@ -71,7 +71,7 @@ summary { cursor: pointer; font-weight: bold; }
 .tray.target { border-color: var(--accent); background: #f0f6ff; cursor: pointer; }
 .tray-head { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
 .tray-body { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; }
-.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .day { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--card); }
 .day h3 { margin: 0; padding: 6px 10px; background: var(--bg); font-size: 15px; border-bottom: 1px solid var(--line); }
 .slot { display: flex; align-items: center; gap: 6px; padding: 3px 6px; border-top: 1px solid #eef0f3; min-height: 36px; }
@@ -81,8 +81,13 @@ summary { cursor: pointer; font-weight: bold; }
 .slot.over { background: #d9e9ff; }
 .slot.break, .slot.blocked { background: repeating-linear-gradient(135deg, #f3f4f6, #f3f4f6 6px, #e9ebef 6px, #e9ebef 12px); color: var(--muted); font-size: 13px; }
 .slot .empty { color: #b0b7c3; font-size: 13px; flex: 1; }
-.slot .mini { margin-left: auto; visibility: hidden; }
-.slot:hover .mini { visibility: visible; }
+.slot { position: relative; }
+.slot .mini { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: none; gap: 2px; padding: 2px; background: var(--card); border-radius: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.25); z-index: 2; }
+.slot .mini .btn { padding: 1px 5px; font-size: 12px; white-space: nowrap; }
+.day-add { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--line); background: var(--bg); }
+.badge.out { background: var(--warn); }
+.badge.moved { background: #2b6cb0; }
+.slot:hover .mini, .slot:focus-within .mini { display: inline-flex; }
 .card { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; background: var(--card); cursor: grab; font-size: 14px; user-select: none; flex: 1; min-width: 0; }
 .tray .card { flex: none; }
 .card .no { color: var(--muted); font-size: 12px; }
@@ -134,7 +139,7 @@ summary { cursor: pointer; font-weight: bold; }
 }
 @media print {
   body { background: #fff; font-size: 11pt; }
-  .top, .step > h2 .num, .hint, .tray, .actions, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
+  .top, .step > h2 .num, .hint, .tray, .actions, .day-add, .badge.moved, #docStep, #warnings, .slot .mini, .panel:not(#teacher), #teacher > .step:first-child { display: none !important; }
   .step { border: none; padding: 0; }
   .board { grid-template-columns: repeat(3, 1fr); }
   .card { border: none; padding: 0; }

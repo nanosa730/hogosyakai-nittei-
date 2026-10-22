@@ -491,11 +491,47 @@
   window.addEventListener('beforeunload', (e) => { if (T.dirty) { e.preventDefault(); e.returnValue = ''; } });
 
   function studentOf(sid) { return T.data.students.get(sid); }
-  function isNg(sid, slot) { return studentOf(sid).ng.includes(slot.bandKey); }
+  function isNg(sid, slot) {
+    const ng = studentOf(sid).ng;
+    return Core.bandsOfSlot(T.data.bands, slot).keys.some((k) => ng.includes(k));
+  }
+  function isOutside(slot) { return Core.bandsOfSlot(T.data.bands, slot).outside; }
+  function timeChanged(sid, slot) { const o = T.original.get(sid); return !!o && o !== slotKey(slot); }
+  const slotLen = (sl) => +T.data.minutes || sl.end - sl.start;
+
+  // 枠・休憩の追加と削除（後ろの枠は時刻がずれる）
+  function addSlot(ref, kind, dateKey) {
+    const d = T.data;
+    const len = slotLen(ref || d.slots.find((x) => x.dateKey === dateKey));
+    Core.insertSlot(d.slots, d.bands, ref, kind, len, dateKey);
+    T.dirty = true;
+    renderBoard();
+  }
+  function deleteSlot(sl) {
+    const d = T.data;
+    if (sl.sid) {
+      if (!confirm(`${Core.label(studentOf(sl.sid))} の枠を消します。この生徒は「未割当」に移ります。よろしいですか？`)) return;
+      d.unassigned.push(sl.sid);
+    }
+    Core.removeSlot(d.slots, d.bands, sl);
+    T.dirty = true;
+    renderBoard();
+  }
+  function rowTools(sl, ...extra) {
+    const btn = (label, title, fn) => h('button', { class: 'btn small', title, onclick: (e) => { e.stopPropagation(); fn(); } }, label);
+    const len = slotLen(sl);
+    return h('span', { class: 'mini' },
+      ...extra.map(([label, fn]) => btn(label, '', fn)),
+      btn('上に枠', `この上に面談枠を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'free')),
+      btn('上に休憩', `この上に休憩を1つ入れます（下の枠は${len}分ずつ後ろにずれます）`, () => addSlot(sl, 'break')),
+      btn('削除', `この枠を消します（下の枠は${sl.end - sl.start}分ずつ前に詰まります）`, () => deleteSlot(sl)));
+  }
 
   function card(sid, slot) {
     const s = studentOf(sid);
     const ng = slot && isNg(sid, slot);
+    const out = slot && !ng && isOutside(slot);
+    const moved = slot && timeChanged(sid, slot);
     const sib = T.data.sibInfo.get(sid);
     const c = h('div', {
       class: 'card' + (T.selected === sid ? ' sel' : '') + (ng ? ' ng' : ''),
@@ -505,7 +541,9 @@
       ondragstart: (e) => { T.selected = sid; e.dataTransfer.setData('text/plain', sid); e.dataTransfer.effectAllowed = 'move'; },
     }, h('span', { class: 'no' }, `${s.no}`), h('span', { class: 'nm' }, s.name),
     sib ? h('span', { class: 'badge sib' }, '兄弟') : null,
-    ng ? h('span', { class: 'badge ng' }, '×') : null);
+    ng ? h('span', { class: 'badge ng' }, '×') : null,
+    out ? h('span', { class: 'badge out' }, '時間外') : null,
+    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null);
     return c;
   }
 
@@ -558,7 +596,8 @@
     for (const sl of d.slots) { if (!byDate.has(sl.dateKey)) byDate.set(sl.dateKey, []); byDate.get(sl.dateKey).push(sl); }
     for (const [, list] of [...byDate].sort()) {
       const first = list[0];
-      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, ` ${list.filter((x) => x.sid).length}人`)));
+      const last = list[list.length - 1];
+      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, ` ${list.filter((x) => x.sid).length}人・${Core.toHM(last.end)}まで`)));
       let prevEnd = null;
       for (const sl of list) {
         if (prevEnd != null && sl.start > prevEnd) col.append(h('div', { class: 'slot break' }, h('span', { class: 't' }, ''), `（${sl.start - prevEnd}分 あき）`));
@@ -567,17 +606,20 @@
         let row;
         if (sl.kind !== 'free') {
           row = h('div', { class: 'slot ' + sl.kind }, t, sl.kind === 'break' ? '休憩' : '担任不可',
-            h('button', { class: 'btn small mini', onclick: (e) => { e.stopPropagation(); sl.kind = 'free'; T.dirty = true; renderBoard(); } }, '面談枠に戻す'));
+            rowTools(sl, ['面談枠にする', () => { sl.kind = 'free'; T.dirty = true; renderBoard(); }]));
         } else if (sl.sid) {
-          row = h('div', { class: 'slot' + (T.selected && T.selected !== sl.sid ? ' target' : '') }, t, card(sl.sid, sl));
+          row = h('div', { class: 'slot' + (T.selected && T.selected !== sl.sid ? ' target' : '') }, t, card(sl.sid, sl), rowTools(sl));
           dropTarget(row, () => moveTo(sl));
         } else {
           row = h('div', { class: 'slot' + (T.selected ? ' target' : '') }, t, h('span', { class: 'empty' }, '空き'),
-            h('button', { class: 'btn small mini', onclick: (e) => { e.stopPropagation(); sl.kind = 'break'; T.dirty = true; renderBoard(); } }, '休憩にする'));
+            rowTools(sl, ['休憩にする', () => { sl.kind = 'break'; T.dirty = true; renderBoard(); }]));
           dropTarget(row, () => moveTo(sl));
         }
         col.append(row);
       }
+      col.append(h('div', { class: 'day-add' },
+        h('button', { class: 'btn small', onclick: () => addSlot(null, 'free', first.dateKey) }, '＋ 最後に枠'),
+        h('button', { class: 'btn small', onclick: () => addSlot(null, 'break', first.dateKey) }, '＋ 最後に休憩')));
       board.append(col);
     }
     renderWarnings();
@@ -588,7 +630,16 @@
     const bad = [];
     const warn = [];
     for (const sl of d.slots) {
-      if (sl.sid && isNg(sl.sid, sl)) bad.push(`${Core.label(studentOf(sl.sid))}：${Core.slotDateText(sl)}${Core.slotTimeText(sl)} は都合が悪い（×）時間です`);
+      if (!sl.sid) continue;
+      const who = Core.label(studentOf(sl.sid));
+      const when = `${Core.slotDateText(sl)}${Core.slotTimeText(sl)}`;
+      if (isNg(sl.sid, sl)) bad.push(`${who}：${when} は都合が悪い（×）時間です${timeChanged(sl.sid, sl) ? '（枠を足したり消したりして時刻がずれました）' : ''}`);
+      else if (isOutside(sl)) warn.push(`${who}：${when} は希望調査の時間帯の外です。保護者の都合を確認してください`);
+    }
+    const changed = d.slots.filter((sl) => sl.sid && timeChanged(sl.sid, sl));
+    if (changed.length) {
+      warn.push(`開いたときから時刻が変わった家庭が${changed.length}件あります（すでに配布物を配っていれば連絡が必要です）：`
+        + changed.map((sl) => { const [dk, st] = T.original.get(sl.sid).split(' '); return `${studentOf(sl.sid).no}番 ${dk.replace(/^0/, '').replace('/0', '/')} ${Core.toHM(+st)}→${sl.month}/${sl.day} ${Core.toHM(sl.start)}`; }).join('、'));
     }
     for (const p of d.problems) bad.push(p);
     for (const sid of d.unassigned) bad.push(`${Core.label(studentOf(sid))}：まだ日時が決まっていません（未割当）`);

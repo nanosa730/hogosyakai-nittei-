@@ -184,3 +184,28 @@ test('文面シートを書き出して読み戻す（改行も残る）', () =>
   assert.equal(Core.letterTime({ month: 11, day: 10, dow: '火', start: 810, end: 820 }, 'start'), '１１月１０日（火）　１３：３０～');
   assert.equal(Core.letterTime({ month: 11, day: 10, dow: '火', start: 810, end: 820 }, 'range'), '１１月１０日（火）　１３：３０～１３：４０');
 });
+
+test('枠・休憩を足すと後ろがずれ、×の時間帯や時間外に入ったことが分かる', () => {
+  const bands = [Core.parseBand('11月10日(火)13:30～14:00'), Core.parseBand('11月10日(火)14:00～14:30')];
+  const slots = Core.buildSlots(bands, { minutes: 10 });
+  slots.forEach((s, i) => { s.sid = `1-A-${i + 1}`; });
+  // 13:40 の前に休憩 → 13:40 以降が10分ずれる
+  const brk = Core.insertSlot(slots, bands, slots[1], 'break', 10);
+  assert.equal(brk.start, Core.toMin('13:40'));
+  assert.deepEqual(slots.map((s) => Core.toHM(s.start)), ['13:30', '13:40', '13:50', '14:00', '14:10', '14:20', '14:30']);
+  const s3 = slots.find((x) => x.sid === '1-A-3'); // 元 13:50 → 14:00（次の時間帯）
+  assert.equal(s3.bandKey, '11/10 14:00');
+  const last = slots[slots.length - 1];
+  assert.equal(Core.bandsOfSlot(bands, last).outside, true, '14:30以降は時間外');
+  assert.equal(Core.bandsOfSlot(bands, s3).outside, false);
+  // 最後に枠を追加
+  const add = Core.insertSlot(slots, bands, null, 'free', 10, '11/10');
+  assert.equal(Core.toHM(add.start), '14:40');
+  // 休憩を消すと元に戻る
+  Core.removeSlot(slots, bands, brk);
+  assert.equal(Core.toHM(slots.find((x) => x.sid === '1-A-3').start), '13:50');
+  assert.equal(slots.find((x) => x.sid === '1-A-3').bandKey, '11/10 13:30');
+  // 時間帯をまたぐ枠は両方の時間帯を見る
+  const cross = { month: 11, day: 10, start: Core.toMin('13:55'), end: Core.toMin('14:05') };
+  assert.deepEqual(Core.bandsOfSlot(bands, cross).keys, ['11/10 13:30', '11/10 14:00']);
+});
