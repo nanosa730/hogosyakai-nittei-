@@ -597,6 +597,31 @@
     timeStyle: 'start',
   };
 
+  // 時候のあいさつ（配布する時期ごと）
+  const SEASON_GREETINGS = [
+    { when: '6月上旬（6/9ごろ）', from: [5, 25], to: [6, 20], items: ['梅雨の候', '入梅の候', '初夏の候', '向暑の候'] },
+    { when: '10月上旬（10/1ごろ）', from: [9, 20], to: [10, 15], items: ['仲秋の候', '秋涼の候', '清秋の候', '秋冷の候'] },
+    { when: '10月下旬（10/26ごろ）', from: [10, 16], to: [11, 10], items: ['錦秋の候', '秋冷の候', '紅葉の候', '晩秋の候'] },
+    { when: '12月上旬（12/1ごろ）', from: [11, 20], to: [12, 15], items: ['初冬の候', '師走の候', '寒冷の候'] },
+  ];
+  const SEASON_RE = /^([\s　]*)([^、。\n]{1,8}の候)/;
+  // 前文の先頭の「〇〇の候」
+  function getSeason(body) {
+    const m = String(body || '').match(SEASON_RE);
+    return m ? m[2] : '';
+  }
+  // 前文の先頭の「〇〇の候」を差し替える（なければ先頭に入れる）
+  function setSeason(body, phrase) {
+    const b = String(body || '');
+    if (SEASON_RE.test(b)) return b.replace(SEASON_RE, (_, sp) => sp + phrase);
+    return `　${phrase}、${b.replace(/^[\s　]+/, '')}`;
+  }
+  // 日付に合う時期（なければ null）
+  function suggestSeason(date) {
+    const md = (date.getMonth() + 1) * 100 + date.getDate();
+    return SEASON_GREETINGS.find((g) => g.from[0] * 100 + g.from[1] <= md && md <= g.to[0] * 100 + g.to[1]) || null;
+  }
+
   // 令和の日付（全角）
   function reiwaDate(d) {
     return toFull(`令和${d.getFullYear() - 2018}年${d.getMonth() + 1}月${d.getDate()}日`);
@@ -648,6 +673,7 @@
     classToSheets, sheetsToClass, timeCell,
     slotDateText, slotTimeText, mergeFields, label, cmpStudent,
     bandsOfSlot, refreshBandKeys, insertSlot, removeSlot,
+    SEASON_GREETINGS, getSeason, setSeason, suggestSeason,
     LETTER_FIELDS, DEFAULT_LETTER, reiwaDate, toFull, letterToRows, rowsToLetter, letterTime,
   };
 });

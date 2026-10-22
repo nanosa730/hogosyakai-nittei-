@@ -209,3 +209,17 @@ test('枠・休憩を足すと後ろがずれ、×の時間帯や時間外に入
   const cross = { month: 11, day: 10, start: Core.toMin('13:55'), end: Core.toMin('14:05') };
   assert.deepEqual(Core.bandsOfSlot(bands, cross).keys, ['11/10 13:30', '11/10 14:00']);
 });
+
+test('時候のあいさつを選んで差し替える', () => {
+  const body = Core.DEFAULT_LETTER.body;
+  assert.equal(Core.getSeason(body), '梅雨の候');
+  const b2 = Core.setSeason(body, '錦秋の候');
+  assert.ok(b2.startsWith('　錦秋の候、皆様には'));
+  assert.equal(b2.slice(b2.indexOf('、')), body.slice(body.indexOf('、')));
+  assert.equal(Core.setSeason('皆様には', '初冬の候'), '　初冬の候、皆様には');
+  assert.equal(Core.suggestSeason(new Date(2026, 5, 9)).items[0], '梅雨の候');
+  assert.equal(Core.suggestSeason(new Date(2026, 9, 1)).items[0], '仲秋の候');
+  assert.equal(Core.suggestSeason(new Date(2026, 9, 26)).items[0], '錦秋の候');
+  assert.equal(Core.suggestSeason(new Date(2026, 11, 1)).items[0], '初冬の候');
+  assert.equal(Core.suggestSeason(new Date(2026, 1, 1)), null);
+});

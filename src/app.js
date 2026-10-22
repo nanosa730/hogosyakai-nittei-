@@ -110,14 +110,32 @@
       pv.replaceChildren(h('div', { class: 'preview-cap' }, '見本（1人目）'),
         letterPage(l, { grade: sm.grade, cls: sm.cls, name: sm.name, time: sm.slot ? Core.letterTime(sm.slot, l.timeStyle) : Core.toFull('11月10日（火）　13:30～') }));
     };
+    const els = {};
     const field = (key, label, opts = {}) => {
       const el = opts.rows
         ? h('textarea', { rows: opts.rows }, letter[key])
         : h('input', { type: 'text', value: letter[key], placeholder: opts.placeholder || '' });
       if (opts.rows) el.value = letter[key];
-      el.addEventListener('input', () => { onChange({ ...get(), [key]: el.value }); redraw(); });
+      els[key] = el;
+      el.addEventListener('input', () => { onChange({ ...get(), [key]: el.value }); redraw(); syncSeason(); });
       return h('label', {}, label, el);
     };
+    // 時候のあいさつ：選ぶと前文の先頭の「〇〇の候」が入れ替わる
+    const sug = Core.suggestSeason(new Date());
+    const seasonSel = h('select', {},
+      h('option', { value: '' }, '（前文のまま）'),
+      Core.SEASON_GREETINGS.map((g) => h('optgroup', { label: g.when + (g === sug ? '　← 今の時期' : '') }, g.items.map((x) => h('option', { value: x }, x)))));
+    const syncSeason = () => {
+      const cur = Core.getSeason(get().body);
+      seasonSel.value = Core.SEASON_GREETINGS.some((g) => g.items.includes(cur)) ? cur : '';
+    };
+    seasonSel.addEventListener('change', () => {
+      if (!seasonSel.value) return;
+      const body = Core.setSeason(get().body, seasonSel.value);
+      els.body.value = body;
+      onChange({ ...get(), body });
+      redraw();
+    });
     const timeSel = h('select', {},
       h('option', { value: 'start', selected: letter.timeStyle !== 'range' }, '開始時刻だけ（例：１３：３０～）'),
       h('option', { value: 'range', selected: letter.timeStyle === 'range' }, '開始～終了（例：１３：３０～１３：４０）'));
@@ -128,13 +146,15 @@
       field('school', '学校名'),
       field('principal', '校長名'),
       field('title', '表題'),
-      field('body', '前文（時候のあいさつなど）', { rows: 7 }),
+      h('label', {}, '時候のあいさつ（選ぶと前文の最初が入れ替わります）', seasonSel),
+      field('body', '前文', { rows: 7 }),
       field('item1', '１の見出し'),
       h('label', {}, '時刻の書き方', timeSel),
       field('note', '日時の下の注意書き'),
       field('items', '２以降の項目', { rows: 9 }),
       h('button', { class: 'btn small', onclick: () => { if (confirm('最初の文面に戻しますか？')) { onChange({ ...Core.DEFAULT_LETTER }); letterEditor(box, get, onChange, sample); } } }, '最初の文面に戻す'));
     box.append(h('div', { class: 'letter-edit' }, form, pv));
+    syncSeason();
     redraw();
   }
 
@@ -390,8 +410,11 @@
     box.append(
       h('div', { class: 'box ok' }, `${keys.length}学級の日程案ができました。下のボタンで学級ごとのExcelを保存し、共有フォルダに置いてください。`),
       h('div', { class: 'actions' },
-        'showDirectoryPicker' in window ? h('button', { class: 'btn primary', onclick: () => saveAllToFolder(keys) }, '保存先フォルダを選んで全学級を保存') : null,
-        h('button', { class: 'btn' + ('showDirectoryPicker' in window ? '' : ' primary'), onclick: () => saveAllZip(keys) }, '全学級をまとめてダウンロード（ZIP）')),
+        h('button', { class: 'btn primary', onclick: () => saveAllDownloads(keys) }, '「ダウンロード」フォルダに全学級を保存'),
+        'showDirectoryPicker' in window ? h('button', { class: 'btn', onclick: () => saveAllToFolder(keys) }, '保存先フォルダを選んで保存') : null,
+        h('button', { class: 'btn', onclick: () => saveAllZip(keys) }, 'ZIPにまとめてダウンロード')),
+      h('p', { class: 'hint' }, '「ダウンロード」に保存したときに「複数ファイルのダウンロード」の確認が出たら「許可」を押してください。'
+        + '「保存先フォルダを選んで保存」では、「ダウンロード」「デスクトップ」「ドキュメント」そのものは選べません。共有フォルダか、その中に作ったフォルダ（例：保護者会）を選んでください。'),
       tbl,
       notes.length ? h('div', { class: 'box warn' }, h('h4', {}, `担任に伝えること（${notes.length}件）`), h('ul', {}, notes.map((n) => h('li', {}, n.text)))) : null,
     );
@@ -399,7 +422,7 @@
 
   async function saveAllToFolder(keys) {
     let dir;
-    try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); } catch (e) { return; }
+    try { dir = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' }); } catch (e) { return; }
     try {
       for (const ck of keys) {
         const c = A.result.res.classes.get(ck);
@@ -412,6 +435,16 @@
     } catch (e) {
       toast(`保存できませんでした：${e.message}。ZIPでダウンロードしてください`, 6000);
     }
+  }
+
+  // 1学級ずつ普通にダウンロードする（いちばん確実）
+  async function saveAllDownloads(keys) {
+    for (const ck of keys) {
+      const c = A.result.res.classes.get(ck);
+      download(sheetsToBlob(classSheets(ck)), fileNameOf(c.grade, c.cls));
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    toast(`${keys.length}個のファイルを「ダウンロード」フォルダに保存しました。共有フォルダに移してください`, 6000);
   }
 
   async function saveAllZip(keys) {
