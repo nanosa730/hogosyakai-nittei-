@@ -4,20 +4,20 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>保護者会日程作成</title>
-<style>/*INLINE:src/app.css*/</style>
+<style>/*TAILWIND*/</style>
 </head>
 <body>
-<header class="top">
-  <h1>保護者会 日程作成ツール</h1>
-  <p class="sub">このページの中だけで処理します。データがインターネットに送られることはありません。</p>
-  <nav class="tabs" role="tablist">
+<header class="bg-white border-b border-line px-4 pt-4">
+  <h1 class="text-[22px] font-bold">保護者会 日程作成ツール</h1>
+  <p class="mt-0.5 mb-2.5 text-[13px] text-muted">このページの中だけで処理します。データがインターネットに送られることはありません。</p>
+  <nav class="flex flex-wrap gap-1" role="tablist">
     <button class="tab" role="tab" data-tab="admin">① 担当者：日程案を一括作成</button>
     <button class="tab" role="tab" data-tab="teacher">② 担任：確認・修正・配布物</button>
     <button class="tab" role="tab" data-tab="help">使い方</button>
   </nav>
 </header>
 
-<main>
+<main class="max-w-[1200px] mx-auto p-4">
   <!-- ===== 担当者 ===== -->
   <section id="admin" class="panel" hidden>
     <div class="step">
@@ -64,7 +64,7 @@
       <h2><span class="num">3</span>確認してください</h2>
       <div id="sibProblems"></div>
       <details id="sibLinksBox"><summary id="sibLinksSummary">見つかった兄弟姉妹</summary><div id="sibLinks"></div></details>
-      <details id="issuesBox"><summary id="issuesSummary">データの注意点</summary><ul id="issues"></ul></details>
+      <details id="issuesBox"><summary id="issuesSummary">データの注意点</summary><ul id="issues" class="list-disc pl-5 mt-1"></ul></details>
     </div>
 
     <div class="step" id="stepRun" hidden>
@@ -116,7 +116,7 @@
         <button class="btn primary big" id="printLettersBtn">配布物を印刷する</button>
         <span id="letterMsg" class="msg"></span>
       </div>
-      <details class="word-opt"><summary>自分で用意したWordに差し込む（上級者向け）</summary>
+      <details class="mt-4"><summary>自分で用意したWordに差し込む（上級者向け）</summary>
         <p>Wordで、名前や日時を入れたい場所に下の<strong>目印</strong>を書いておき、そのWordを選んでください。1人1ページで全員分が入ったWordができます。</p>
         <table class="marks">
           <tr><th>目印</th><th>入る内容（例）</th></tr>
@@ -138,10 +138,10 @@
   </section>
 
   <!-- ===== 使い方 ===== -->
-  <section id="help" class="panel" hidden>
+  <section id="help" class="panel [&_h2]:mt-4 [&_ul]:list-disc [&_ul]:pl-6 [&_p]:my-2" hidden>
     <div class="step">
       <h2>全体の流れ</h2>
-      <ol class="flow">
+      <ol class="list-decimal pl-6 space-y-1.5">
         <li><strong>担当者</strong>：全学年のFormsのExcelを入れて「日程案を作成する」→ 学級ごとのExcel（日程案_〇年〇組.xlsx）を共有フォルダに保存。</li>
         <li><strong>担任</strong>：このページの「②担任」で自分の学級の日程案を開き、必要なら順番を入れ替えて「保存する」。</li>
         <li><strong>担任</strong>：「配布物を印刷する」で、1人1枚のお知らせを印刷。</li>

@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body { @apply bg-page text-ink font-ui text-base leading-relaxed; }
+  summary { @apply cursor-pointer font-bold; }
+  details { @apply mt-2; }
+  select, input[type="number"] { @apply text-base p-1.5 border border-line rounded-md bg-white text-ink; }
+}
+
+/* 画面の部品（JSで作る要素もこのクラス名を使う） */
+@layer components {
+  .tab { @apply border border-b-0 border-line bg-page px-4 py-2.5 text-base rounded-t-lg cursor-pointer text-ink; }
+  .tab[aria-selected="true"] { @apply bg-accent text-white border-accent font-bold; }
+  .step { @apply bg-white border border-line rounded-xl px-5 py-4 mb-4; }
+  .step h2 { @apply mb-2 text-[19px] font-bold flex items-center gap-2; }
+  .step h3 { @apply text-base font-bold mt-4 mb-1; }
+  .num { @apply inline-flex w-7 h-7 rounded-full bg-accent text-white items-center justify-center text-[15px]; }
+  .hint { @apply text-muted text-sm mt-1 mb-2; }
+  .msg { @apply text-muted text-sm ml-2; }
+  .step > p, .step details > p { @apply my-2; }
+
+  .drop { @apply flex flex-col items-center justify-center border-2 border-dashed border-accent rounded-xl px-3 py-7 cursor-pointer bg-accent-soft text-center; }
+  .drop.small { @apply py-4; }
+  .drop.over { @apply bg-accent-over; }
+  .drop-main { @apply text-lg font-bold text-accent; }
+  .drop-sub { @apply text-sm text-muted; }
+
+  .btn { @apply border border-line bg-white text-ink rounded-lg px-4 py-2 text-base cursor-pointer hover:border-accent disabled:opacity-45 disabled:cursor-default; }
+  .btn.primary { @apply bg-accent text-white border-accent font-bold; }
+  .btn.big { @apply px-7 py-3 text-lg; }
+  .btn.small { @apply px-2 py-0.5 text-[13px]; }
+  .actions { @apply mt-3.5 flex gap-2 items-center flex-wrap; }
+
+  .tbl { @apply w-full mt-2.5 text-[15px] border-collapse; }
+  .tbl th, .tbl td { @apply border border-line px-2 py-1.5 text-left; }
+  .tbl th { @apply bg-page; }
+  .marks { @apply mt-1.5 mb-3 border-collapse; }
+  .marks td, .marks th { @apply border border-line px-2.5 py-1 text-sm; }
+
+  .form-grid { @apply grid gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]; }
+  .form-grid label { @apply flex flex-col text-sm text-muted; }
+  .grid-wrap { @apply overflow-x-auto; }
+  .bgrid { @apply text-[13px] mt-2 mb-4 border-collapse; }
+  .bgrid th, .bgrid td { @apply border border-line px-1.5 py-1 text-center whitespace-nowrap; }
+  .bgrid th { @apply bg-page font-normal; }
+  .bgrid td.cell { @apply cursor-pointer min-w-16; }
+  .bgrid td.cell.on { @apply bg-bad-bg text-bad font-bold; }
+
+  .box { @apply rounded-lg px-3.5 py-2.5 my-2; }
+  .box.warn { @apply bg-warn-bg border border-warn-line; }
+  .box.bad { @apply bg-bad-bg border border-bad-line; }
+  .box.ok { @apply bg-ok-bg border border-ok-line; }
+  .box h4 { @apply mb-1.5 text-[15px] font-bold; }
+  .box ul { @apply list-disc pl-5; }
+  .box.sibbox { @apply bg-sib-soft border border-sib-line; }
+  .box.sibbox summary { @apply text-sib; }
+  .box.sibbox ul { @apply mt-1.5 text-sm; }
+  .sibrow { @apply flex flex-wrap gap-x-3 gap-y-1.5 items-center py-1.5 border-t border-dashed border-line first-of-type:border-t-0; }
+  .sibrow .who { @apply font-bold; }
+  .sibrow .raw { @apply text-muted; }
+
+  /* 担任の日程表 */
+  .tray { @apply border-2 border-dashed border-line rounded-xl p-2 my-2.5 bg-[#fafbfc]; }
+  .tray.target { @apply border-accent bg-accent-soft cursor-pointer; }
+  .tray-head { @apply text-[13px] text-muted mb-1; }
+  .tray-body { @apply flex flex-wrap gap-1.5 min-h-[34px]; }
+  .board { @apply grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(240px,1fr))]; }
+  .day { @apply border border-line rounded-lg overflow-hidden bg-white; }
+  .day h3 { @apply m-0 px-2.5 py-1.5 bg-page text-[15px] font-bold border-b border-line; }
+  .day-add { @apply flex gap-1 p-1.5 border-t border-line bg-page; }
+  .slot { @apply flex flex-wrap items-center gap-1.5 px-1.5 py-[3px] border-t border-[#eef0f3] min-h-9 first-of-type:border-t-0; }
+  .slot.target { @apply bg-accent-soft cursor-pointer; }
+  .slot.over { @apply bg-accent-over; }
+  .slot.break, .slot.blocked { @apply text-muted text-[13px] bg-[repeating-linear-gradient(135deg,#f3f4f6,#f3f4f6_6px,#e9ebef_6px,#e9ebef_12px)]; }
+  .slot .t { @apply w-[46px] flex-none text-left text-[13px] text-muted tabular-nums cursor-pointer hover:text-accent; }
+  .slot .t.open { @apply text-accent; }
+  .slot .t .caret { @apply text-[9px] ml-px text-faint; }
+  .slot .t:hover .caret, .slot .t.open .caret { @apply text-accent; }
+  .slot .empty { @apply text-faint text-[13px] flex-1; }
+  .slot .mini { @apply basis-full flex flex-wrap gap-1 pl-[46px] pt-1 pb-0.5; }
+  .slot .mini .btn { @apply px-1.5 py-px text-xs whitespace-nowrap; }
+
+  .card { @apply inline-flex flex-wrap items-center gap-1 flex-1 min-w-0 border border-line rounded-md px-2 py-[3px] bg-white cursor-grab text-sm select-none; }
+  .tray .card { @apply flex-none; }
+  .card .no { @apply text-muted text-xs; }
+  .card .nm { @apply truncate; }
+  .card.sel { @apply bg-sel border-sel-line ring-2 ring-sel-ring; }
+  .card.ng { @apply bg-bad-bg border-bad; }
+  .card.sib { @apply bg-sib-bg border-sib border-l-[5px]; }
+  .card.sibask { @apply border-l-[5px] border-l-warn; }
+  .card .sibline { @apply basis-full text-[11px] text-sib truncate leading-snug; }
+  .badge { @apply text-[11px] rounded px-1 text-white flex-none; }
+  .badge.sib { @apply bg-sib; }
+  .badge.sibask, .badge.out { @apply bg-warn; }
+  .badge.ng { @apply bg-bad; }
+  .badge.moved { @apply bg-[#2b6cb0]; }
+  .badge.memo { @apply bg-muted; }
+
+  .toast { @apply fixed bottom-5 left-1/2 -translate-x-1/2 bg-ink text-white px-[18px] py-2.5 rounded-lg text-[15px] z-10 max-w-[90vw]; }
+
+  /* 文面の入力 */
+  .letter-edit { @apply grid gap-4 items-start grid-cols-1 min-[800px]:grid-cols-2; }
+  .letter-form label { @apply flex flex-col text-[13px] text-muted mb-2; }
+  .letter-form input, .letter-form textarea { @apply text-[15px] p-1.5 border border-line rounded-md text-ink bg-white; }
+  .letter-form textarea { @apply resize-y leading-normal; }
+  .preview-wrap { @apply border border-line bg-[#e9ecf0] p-2.5 overflow-hidden rounded-lg; }
+  .preview-cap { @apply text-[13px] text-muted mb-1.5; }
+}
+
+/* 印刷物（A4、mm単位） */
+.preview-wrap .letter-page { transform: scale(.55); transform-origin: top left; margin-bottom: calc(-.45 * 267mm); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.letter-page { @apply bg-white text-black relative overflow-hidden font-letter; width: 174mm; height: 265mm; font-size: 12pt; line-height: 1.5; }
+.letter-page .r { @apply text-right; }
+.letter-page .c { @apply text-center; }
+.letter-page .lp-date { margin-top: 4mm; }
+.letter-page .lp-to, .letter-page .lp-school { margin-top: 2mm; }
+.letter-page .lp-title { font-size: 16pt; margin: 8mm 0 5mm; }
+.letter-page .lp-body { @apply whitespace-pre-wrap; min-height: 38mm; }
+.letter-page .lp-ki { margin: 6mm 0 4mm; }
+.letter-page .lp-box { border: 2px solid #000; margin: 3mm 0 8mm 9mm; padding: 4mm 6mm 3mm; }
+.letter-page .lp-who { @apply flex; gap: 6mm; padding-left: 4mm; }
+.letter-page .lp-time { @apply font-bold; font-size: 16pt; margin: 2mm 0 2mm 12mm; }
+.letter-page .lp-note { margin-left: 8mm; }
+.letter-page .lp-items { @apply whitespace-pre-wrap; }
+
+.sched-page { @apply bg-white text-black flex flex-col overflow-hidden font-sched; -webkit-print-color-adjust: exact; print-color-adjust: exact; width: 174mm; height: 265mm; }
+.sched-page .sp-head { @apply flex justify-between items-baseline; border-bottom: 2px solid #000; padding-bottom: 2mm; margin-bottom: 3mm; }
+.sched-page .sp-title { @apply font-bold; font-size: 16pt; }
+.sched-page .sp-sub { font-size: 10pt; }
+.sched-page .sp-table { @apply table-fixed border-collapse flex-1; width: 99.4%; }
+.sched-page .sp-table th, .sched-page .sp-table td { @apply border border-black text-left overflow-hidden whitespace-nowrap; padding: 0 1.5mm; }
+.sched-page .sp-table thead th { @apply text-center bg-[#eee] font-bold; padding: 1mm; font-size: 11pt; height: 12mm; }
+.sched-page .sp-table tbody th { @apply font-bold; }
+.sched-page .sp-table .tcol { @apply text-center bg-[#f4f4f4]; width: 14mm; }
+.sched-page .sp-table td.brk { @apply bg-[#e6e6e6] text-center text-[#333]; }
+.sched-page .sp-table td.none { @apply bg-[#f2f2f2] text-center text-[#999]; }
+.sched-page .cnt { @apply font-normal; font-size: 9pt; }
+.sched-page .sno { @apply inline-block text-[#333]; min-width: 6mm; font-size: .8em; }
+.sched-page .smark { margin-left: 1mm; font-size: .8em; }
+.sched-page.size-l .sp-table td, .sched-page.size-l .sp-table tbody th { font-size: 11pt; }
+.sched-page.size-m .sp-table td, .sched-page.size-m .sp-table tbody th { font-size: 9.5pt; }
+.sched-page.size-s .sp-table td, .sched-page.size-s .sp-table tbody th { font-size: 8pt; }
+.sched-page .sp-foot { font-size: 10pt; margin-top: 2mm; min-height: 6mm; }
+
+#printArea { display: none; }
+@page { size: A4 portrait; margin: 15mm 18mm; }
+@media print {
+  body.print-letters > *:not(#printArea) { display: none !important; }
+  body.print-letters #printArea { display: block; }
+  body.print-letters #printArea > * { break-after: page; page-break-after: always; }
+  body.print-letters #printArea > *:last-child { break-after: auto; page-break-after: auto; }
+}

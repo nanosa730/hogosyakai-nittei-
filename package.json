@@ -19,6 +19,7 @@
   "homepage": "https://github.com/nanosa730/hogosyakai-nittei-#readme",
   "devDependencies": {
     "jszip": "^3.10.1",
+    "tailwindcss": "^3.4.17",
     "xlsx": "^0.18.5"
   },
   "private": true

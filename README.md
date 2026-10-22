@@ -72,3 +72,6 @@ npm install
 npm test        # 計算ロジックのテスト
 npm run build   # src/ から dist/保護者会日程作成ツール.html を作る
 ```
+
+見た目は Tailwind CSS（`tailwind.config.js`、`src/tailwind.css`）で作っています。
+ビルドのときに使う分だけのCSSを書き出してHTMLに埋め込むので、配るHTMLはインターネットなしで動きます。
