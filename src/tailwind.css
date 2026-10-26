@@ -66,23 +66,25 @@
   .tray.target { @apply border-accent bg-accent-soft cursor-pointer; }
   .tray-head { @apply text-[13px] text-muted mb-1; }
   .tray-body { @apply flex flex-wrap gap-1.5 min-h-[34px]; }
-  .board { @apply grid gap-2.5 grid-cols-[repeat(auto-fill,minmax(240px,1fr))]; }
+  .board-wrap { @apply overflow-x-auto pb-1; }
+  .board { @apply grid gap-1.5 grid-cols-[repeat(var(--days,5),minmax(150px,1fr))]; }
   .day { @apply border border-line rounded-lg overflow-hidden bg-white; }
-  .day h3 { @apply m-0 px-2.5 py-1.5 bg-page text-[15px] font-bold border-b border-line; }
-  .day-add { @apply flex gap-1 p-1.5 border-t border-line bg-page; }
-  .slot { @apply flex flex-wrap items-center gap-1.5 px-1.5 py-[3px] border-t border-[#eef0f3] min-h-9 first-of-type:border-t-0; }
+  .day h3 { @apply m-0 px-2 py-1 bg-page text-sm font-bold border-b border-line sticky top-0 z-[1] whitespace-nowrap; }
+  .day h3 .hint { @apply block m-0 text-xs font-normal; }
+  .day-add { @apply flex flex-wrap gap-1 p-1 border-t border-line bg-page; }
+  .slot { @apply flex flex-wrap items-center gap-1 px-1 py-0.5 border-t border-[#eef0f3] min-h-[30px] first-of-type:border-t-0; }
   .slot.target { @apply bg-accent-soft cursor-pointer; }
   .slot.over { @apply bg-accent-over; }
   .slot.break, .slot.blocked { @apply text-muted text-[13px] bg-[repeating-linear-gradient(135deg,#f3f4f6,#f3f4f6_6px,#e9ebef_6px,#e9ebef_12px)]; }
-  .slot .t { @apply w-[46px] flex-none text-left text-[13px] text-muted tabular-nums cursor-pointer hover:text-accent; }
+  .slot .t { @apply w-[40px] flex-none text-left text-[13px] text-muted tabular-nums cursor-pointer hover:text-accent; }
   .slot .t.open { @apply text-accent; }
   .slot .t .caret { @apply text-[9px] ml-px text-faint; }
   .slot .t:hover .caret, .slot .t.open .caret { @apply text-accent; }
   .slot .empty { @apply text-faint text-[13px] flex-1; }
-  .slot .mini { @apply basis-full flex flex-wrap gap-1 pl-[46px] pt-1 pb-0.5; }
+  .slot .mini { @apply basis-full flex flex-wrap gap-1 pl-[40px] pt-1 pb-0.5; }
   .slot .mini .btn { @apply px-1.5 py-px text-xs whitespace-nowrap; }
 
-  .card { @apply inline-flex flex-wrap items-center gap-1 flex-1 min-w-0 border border-line rounded-md px-2 py-[3px] bg-white cursor-grab text-sm select-none; }
+  .card { @apply inline-flex flex-nowrap items-center gap-1 flex-1 min-w-0 border border-line rounded-md px-1.5 py-px bg-white cursor-grab text-[13px] select-none; }
   .tray .card { @apply flex-none; }
   .card .no { @apply text-muted text-xs; }
   .card .nm { @apply truncate; }
@@ -90,7 +92,6 @@
   .card.ng { @apply bg-bad-bg border-bad; }
   .card.sib { @apply bg-sib-bg border-sib border-l-[5px]; }
   .card.sibask { @apply border-l-[5px] border-l-warn; }
-  .card .sibline { @apply basis-full text-[11px] text-sib truncate leading-snug; }
   .badge { @apply text-[11px] rounded px-1 text-white flex-none; }
   .badge.sib { @apply bg-sib; }
   .badge.sibask, .badge.out { @apply bg-warn; }

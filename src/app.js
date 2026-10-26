@@ -636,17 +636,8 @@
     sibOk ? h('span', { class: 'badge sib' }, '兄弟') : sibAsk ? h('span', { class: 'badge sibask' }, '兄弟？') : null,
     ng ? h('span', { class: 'badge ng' }, '×') : null,
     out ? h('span', { class: 'badge out' }, '時間外') : null,
-    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null,
-    sibOk && slot ? h('span', { class: 'sibline' }, `↔ ${shortSib(info)}`) : null);
+    moved ? h('span', { class: 'badge moved', title: `元の時刻：${T.original.get(sid).split(' ')[0]} ${Core.toHM(+T.original.get(sid).split(' ')[1])}` }, '時刻変更') : null);
     return c;
-  }
-
-  // 「2年B組3番 生徒2203（11/13 13:30～13:40）」→「2年B組3番 11/13 13:30」
-  function shortSib(info) {
-    return info.split('／').filter((x) => !x.startsWith('要確認')).map((x) => {
-      const m = x.match(/^(\S+番)\s.*[（(]([^）)]+?)(?:[～~][^）)]*)?[）)]$/);
-      return m ? `${m[1]} ${m[2]}` : x;
-    }).join('、');
   }
 
   function dropTarget(el, onDrop) {
@@ -696,10 +687,11 @@
     board.replaceChildren();
     const byDate = new Map();
     for (const sl of d.slots) { if (!byDate.has(sl.dateKey)) byDate.set(sl.dateKey, []); byDate.get(sl.dateKey).push(sl); }
+    board.style.setProperty('--days', byDate.size);
     for (const [, list] of [...byDate].sort()) {
       const first = list[0];
       const last = list[list.length - 1];
-      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, ` ${list.filter((x) => x.sid).length}人・${Core.toHM(last.end)}まで`)));
+      const col = h('div', { class: 'day' }, h('h3', {}, Core.slotDateText(first), h('span', { class: 'hint' }, `${list.filter((x) => x.sid).length}人・${Core.toHM(last.end)}まで`)));
       let prevEnd = null;
       for (const sl of list) {
         if (prevEnd != null && sl.start > prevEnd) col.append(h('div', { class: 'slot break' }, h('span', { class: 't' }, ''), `（${sl.start - prevEnd}分 あき）`));
@@ -723,8 +715,8 @@
         col.append(row);
       }
       col.append(h('div', { class: 'day-add' },
-        h('button', { class: 'btn small', onclick: () => addSlot(null, 'free', first.dateKey) }, '＋ 最後に枠'),
-        h('button', { class: 'btn small', onclick: () => addSlot(null, 'break', first.dateKey) }, '＋ 最後に休憩')));
+        h('button', { class: 'btn small', title: 'この日の最後に面談枠を足します', onclick: () => addSlot(null, 'free', first.dateKey) }, '＋最後に枠'),
+        h('button', { class: 'btn small', title: 'この日の最後に休憩を足します', onclick: () => addSlot(null, 'break', first.dateKey) }, '＋最後に休憩')));
       board.append(col);
     }
     renderWarnings();
